@@ -17,6 +17,15 @@ const PURPLE = "#8B5CF6"; // можно заменить на токены те�
 const PURPLE_SOFT = "#E9D5FF";
 const TEXT_MUTED = "#7C7790";
 
+const goToCreateBooks = (openCreate: string | null | undefined = null) => {
+  return () => router.push({ pathname: "/book-create", params: { returnTo: "/" } });
+}
+
+const goToBooks = (openCreate: string | null | undefined = null) => {
+  return () => router.push({ pathname: "/books" })
+
+}
+
 function CircleProgress({
                           value,
                           size = 56,
@@ -102,7 +111,7 @@ export default function HomeScreen() {
 
             <Pressable
               className="mt-2 items-center justify-center"
-              onPress={() => router.push({ pathname: "/books", params: { openCreate: "1" } })}
+              onPress={goToCreateBooks()}
             >
               <View className="flex-row items-center gap-2" >
                 <Text className="text-2xl font-semibold" style={{ color: PURPLE }}>
@@ -155,7 +164,10 @@ export default function HomeScreen() {
           </Card>
 
           {/* Section: Books */}
-          <Pressable className="mb-3 flex-row items-center gap-2">
+          <Pressable
+            className="mb-3 flex-row items-center gap-2"
+            onPress={goToBooks()}
+          >
             <View className="h-4 w-1 rounded-full" style={{ backgroundColor: PURPLE_SOFT }} />
             <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
               Книги
@@ -174,7 +186,7 @@ export default function HomeScreen() {
         <View className="absolute bottom-6 right-6">
           <Pressable
             className="h-14 w-14 items-center justify-center rounded-full"
-            onPress={() => router.push({ pathname: "/books", params: { openCreate: "1" } })}
+            onPress={goToCreateBooks()}
             style={{ backgroundColor: "#E9D5FF" }}
           >
             <PlusIcon width={24} height={24} color={PURPLE} />

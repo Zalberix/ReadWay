@@ -123,16 +123,6 @@ export default function BooksScreen() {
     { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
   ];
 
-  const params = useLocalSearchParams<{ openCreate?: string }>();
-
-  useEffect(() => {
-    if (params.openCreate === "1") {
-      router.setParams({ openCreate: undefined as any });
-
-      router.push({ pathname: "/book-create", params: { returnTo: "/" } });
-    }
-  }, [params.openCreate]);
-
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "bottom"]}>
       {/* Header */}
