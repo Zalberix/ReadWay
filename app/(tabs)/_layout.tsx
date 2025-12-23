@@ -1,33 +1,59 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { Image, View } from 'react-native';
+import HomeIcon from '@/assets/icons/home.svg';
+import GoalIcon from '@/assets/icons/goal.svg';
+import StatsIcon from '@/assets/icons/stats.svg';
+import BooksIcon from '@/assets/icons/books.svg';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: {
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: '#6C5CE7',
+        tabBarInactiveTintColor: '#1E1E1E',
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Главная',
+          tabBarIcon: ({ color }) => (
+            <HomeIcon width={24} height={24} color={color}/>
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="goal"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Цель',
+          tabBarIcon: ({ color }) => (
+            <GoalIcon width={24} height={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="stats"
+        options={{
+          title: 'Статистика',
+          tabBarIcon: ({ color }) => (
+            <StatsIcon width={24} height={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="books"
+        options={{
+          title: 'Книги',
+          tabBarIcon: ({ color }) => (
+            <BooksIcon width={24} height={24} color={color} />
+          ),
         }}
       />
     </Tabs>
