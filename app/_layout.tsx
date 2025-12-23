@@ -6,6 +6,8 @@ import '../global.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {PortalHost} from "@rn-primitives/portal";
+import {useEffect, useState} from "react";
+import {db} from "@/src/db/sqlite.service";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -14,11 +16,25 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      await db.init();
+      setReady(true);
+    })();
+  }, []);
+
+  if (!ready) return null;
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen
+          name="(modals)/book-create"
+          options={{ presentation: "modal", headerShown: false }}
+        />
       </Stack>
       <StatusBar style="auto" />
       <PortalHost />

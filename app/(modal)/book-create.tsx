@@ -1,0 +1,393 @@
+// app/(modals)/book-create.tsx
+import React, { useMemo, useState } from "react";
+import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
+
+// Reusables
+import { Card } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
+
+// Icons (переименуешь как захочешь)
+import BackIcon from "@/assets/icons/back.svg";
+import CheckIcon from "@/assets/icons/check.svg";
+import CameraIcon from "@/assets/icons/camera.svg";
+import SearchIcon from "@/assets/icons/search.svg";
+import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+
+import { BooksRepository } from "@/src/features/books/books.repository";
+
+const BG = "#F4F0FF";
+const PURPLE = "#7C5CFF";
+const PURPLE_SOFT = "#E9D5FF";
+const TEXT_MUTED = "#7C7790";
+const INPUT_BG = "#F4F4F7";
+
+type Params = {
+  returnTo?: string; // "/", "/books"
+};
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <View className="mb-3 flex-row items-center gap-2">
+      <View className="h-4 w-10 rounded-md" style={{ backgroundColor: PURPLE_SOFT }} />
+      <Text className="text-lg font-semibold" style={{ color: "#4B5563" }}>
+        {title}
+      </Text>
+    </View>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text className="mb-1 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+      {children}
+    </Text>
+  );
+}
+
+function Input({
+                 value,
+                 onChangeText,
+                 placeholder,
+                 keyboardType,
+               }: {
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder: string;
+  keyboardType?: "default" | "number-pad";
+}) {
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#9CA3AF"
+      keyboardType={keyboardType}
+      className="rounded-xl px-4 py-3 text-base"
+      style={{ backgroundColor: INPUT_BG }}
+    />
+  );
+}
+
+function Date3Input({
+                      day,
+                      month,
+                      year,
+                      setDay,
+                      setMonth,
+                      setYear,
+                    }: {
+  day: string;
+  month: string;
+  year: string;
+  setDay: (v: string) => void;
+  setMonth: (v: string) => void;
+  setYear: (v: string) => void;
+}) {
+  return (
+    <View className="flex-row gap-2">
+      <TextInput
+        value={day}
+        onChangeText={(v) => setDay(v.replace(/\D/g, "").slice(0, 2))}
+        placeholder="DD"
+        placeholderTextColor="#9CA3AF"
+        keyboardType="number-pad"
+        className="flex-1 rounded-xl px-4 py-3 text-base"
+        style={{ backgroundColor: INPUT_BG }}
+      />
+      <TextInput
+        value={month}
+        onChangeText={(v) => setMonth(v.replace(/\D/g, "").slice(0, 2))}
+        placeholder="MM"
+        placeholderTextColor="#9CA3AF"
+        keyboardType="number-pad"
+        className="flex-1 rounded-xl px-4 py-3 text-base"
+        style={{ backgroundColor: INPUT_BG }}
+      />
+      <TextInput
+        value={year}
+        onChangeText={(v) => setYear(v.replace(/\D/g, "").slice(0, 4))}
+        placeholder="YYYY"
+        placeholderTextColor="#9CA3AF"
+        keyboardType="number-pad"
+        className="flex-[1.5] rounded-xl px-4 py-3 text-base"
+        style={{ backgroundColor: INPUT_BG }}
+      />
+    </View>
+  );
+}
+
+function BookCover({
+                     uri,
+                     onPick,
+                   }: {
+  uri?: string | null;
+  onPick?: () => void;
+}) {
+  const has = typeof uri === "string" && uri.trim().length > 0;
+
+  return (
+    <View className="items-center">
+      <View
+        className="relative overflow-hidden rounded-2xl shadow-sm"
+        style={{ width: 160, height: 140, backgroundColor: "#E9E4F4" }}
+      >
+        {has ? (
+          <Image source={{ uri: uri! }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+        ) : (
+          <View className="flex-1 items-center justify-center">
+            <PlaceholderIcon width={44} height={44} color="#B8B3C8" />
+          </View>
+        )}
+
+        <Pressable
+          onPress={onPick}
+          className="absolute bottom-2 right-2 h-9 w-9 items-center justify-center rounded-full"
+          style={{ backgroundColor: "#FFFFFF" }}
+        >
+          <CameraIcon width={18} height={18} color="#6B677A" />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export default function BookCreateScreen() {
+  const params = useLocalSearchParams<Params>();
+  const returnTo = useMemo(() => {
+    const v = params.returnTo;
+    return typeof v === "string" && v.length > 0 ? v : undefined;
+  }, [params.returnTo]);
+
+  const goBack = () => {
+    if (returnTo) router.replace({ pathname: returnTo as any });
+    else router.back();
+  };
+
+  // Form state
+  const [title, setTitle] = useState("");
+  const [isbn, setIsbn] = useState("");
+  const [totalPages, setTotalPages] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [pubDD, setPubDD] = useState("");
+  const [pubMM, setPubMM] = useState("");
+  const [pubYYYY, setPubYYYY] = useState("");
+  const [authorQuery, setAuthorQuery] = useState("");
+  const [authors, setAuthors] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
+  const [saving, setSaving] = useState(false);
+
+  const canSubmit = title.trim().length > 0 && !saving;
+
+  const addAuthor = () => {
+    const v = authorQuery.trim();
+    if (!v) return;
+    setAuthors((prev) => (prev.includes(v) ? prev : [...prev, v]));
+    setAuthorQuery("");
+  };
+
+  const removeAuthor = (name: string) => {
+    setAuthors((prev) => prev.filter((x) => x !== name));
+  };
+
+  const onSave = async () => {
+    if (!canSubmit) return;
+
+    const pagesNum = Number(totalPages);
+    const pages = Number.isFinite(pagesNum) && pagesNum > 0 ? Math.floor(pagesNum) : 0;
+
+    setSaving(true);
+    try {
+      // Минимальная запись в БД по текущей схеме (title/totalPages/cover)
+      await BooksRepository.create({
+        title: title.trim(),
+        totalPages: pages,
+        coverUri: coverUrl,
+      });
+
+      goBack();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "bottom"]}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <Pressable onPress={goBack} className="h-10 w-10 items-center justify-center rounded-full">
+          <BackIcon width={24} height={24} color="#374151" />
+        </Pressable>
+
+        <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+          Добавить книгу
+        </Text>
+
+        <Pressable
+          onPress={onSave}
+          disabled={!canSubmit}
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{ opacity: canSubmit ? 1 : 0.4 }}
+        >
+          <CheckIcon width={24} height={24} />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-4 pb-28"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Cover */}
+        <BookCover
+          uri={coverUrl}
+          onPick={() => {
+            // Заглушка: пока без выбора из галереи — можно заменить на expo-image-picker
+            // Для теста можно вставить URL руками через переменную coverUrl
+          }}
+        />
+
+        {/* Main info */}
+        <View className="mt-4">
+          <SectionTitle title="Основная информация" />
+
+          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <View className="mb-3">
+              <FieldLabel>Заголовок</FieldLabel>
+              <Input value={title} onChangeText={setTitle} placeholder="Название книги" />
+            </View>
+
+            <View className="mb-3">
+              <FieldLabel>ISBN</FieldLabel>
+              <Input value={isbn} onChangeText={setIsbn} placeholder="Номер" />
+            </View>
+
+            <View>
+              <FieldLabel>Всего страниц</FieldLabel>
+              <Input
+                value={totalPages}
+                onChangeText={(v) => setTotalPages(v.replace(/\D/g, ""))}
+                placeholder="Количество страниц"
+                keyboardType="number-pad"
+              />
+            </View>
+          </Card>
+        </View>
+
+        {/* Publication */}
+        <View className="mt-6">
+          <SectionTitle title="Информация о публикации" />
+
+          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <View className="mb-3">
+              <FieldLabel>Издатель</FieldLabel>
+              <Input value={publisher} onChangeText={setPublisher} placeholder="Наименование издателя" />
+            </View>
+
+            <View>
+              <FieldLabel>Дата публикации</FieldLabel>
+              <Date3Input
+                day={pubDD}
+                month={pubMM}
+                year={pubYYYY}
+                setDay={setPubDD}
+                setMonth={setPubMM}
+                setYear={setPubYYYY}
+              />
+            </View>
+          </Card>
+        </View>
+
+        {/* Authors */}
+        <View className="mt-6">
+          <SectionTitle title="Авторы" />
+
+          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1">
+                <TextInput
+                  value={authorQuery}
+                  onChangeText={setAuthorQuery}
+                  placeholder="ФИО"
+                  placeholderTextColor="#9CA3AF"
+                  className="rounded-xl px-4 py-3 text-base"
+                  style={{ backgroundColor: INPUT_BG }}
+                />
+              </View>
+
+              <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: INPUT_BG }}>
+                <SearchIcon width={18} height={18} color="#6B677A" />
+              </View>
+            </View>
+
+            {authors.length > 0 && (
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                {authors.map((a) => (
+                  <Pressable
+                    key={a}
+                    onPress={() => removeAuthor(a)}
+                    className="rounded-full px-3 py-2"
+                    style={{ backgroundColor: PURPLE_SOFT }}
+                  >
+                    <Text className="text-sm font-medium" style={{ color: "#111827" }}>
+                      {a} ✕
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            <Pressable onPress={addAuthor} className="mt-4 items-center justify-center">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+                  Добавить
+                </Text>
+                <Text className="text-2xl font-semibold" style={{ color: PURPLE }}>
+                  +
+                </Text>
+              </View>
+            </Pressable>
+          </Card>
+        </View>
+
+        {/* Description */}
+        <View className="mt-6">
+          <SectionTitle title="Описание" />
+
+          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Описание книги"
+              placeholderTextColor="#9CA3AF"
+              multiline
+              textAlignVertical="top"
+              className="rounded-xl px-4 py-3 text-base"
+              style={{ backgroundColor: INPUT_BG, minHeight: 110 }}
+            />
+          </Card>
+        </View>
+
+        {/* Optional: Cover URL quick input (dev) */}
+        <View className="mt-6">
+          <SectionTitle title="Обложка (URL) — временно" />
+          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Input
+              value={coverUrl ?? ""}
+              onChangeText={(v) => setCoverUrl(v.trim().length ? v : null)}
+              placeholder="https://..."
+            />
+            <Text className="mt-2 text-xs" style={{ color: TEXT_MUTED }}>
+              Это временное поле. Потом заменишь на выбор изображения из галереи.
+            </Text>
+          </Card>
+        </View>
+
+        <View className="h-6" />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}

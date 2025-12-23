@@ -1,10 +1,8 @@
 import { Tabs } from 'expo-router';
-import { Image, View } from 'react-native';
 import HomeIcon from '@/assets/icons/home.svg';
 import GoalIcon from '@/assets/icons/goal.svg';
 import StatsIcon from '@/assets/icons/stats.svg';
 import BooksIcon from '@/assets/icons/books.svg';
-
 
 export default function TabsLayout() {
   return (
@@ -12,7 +10,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          height: 64,
+          height: 48,
           paddingBottom: 8,
           paddingTop: 8,
         },
@@ -21,7 +19,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
           title: 'Главная',
           tabBarIcon: ({ color }) => (
