@@ -1,18 +1,18 @@
 // app/(tabs)/books.tsx
-import React from "react";
+import React, {useMemo, useState} from "react";
 import {Image, Pressable, ScrollView, View} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 
-
-// Reusables (пути поправь под свой шаблон, если отличаются)
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 
-// Иконки из assets/icons (названия любые — потом заменишь)
 import BackIcon from "@/assets/icons/back.svg";
 import PlusIcon from "@/assets/icons/plus.svg";
+import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+
+import {BookRow, useBooksRepository} from "@/src/features/books/books.repository";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -32,10 +32,19 @@ function BookThumb({
   title: string;
   size?: number;
 }) {
-  const s = size;
+  const s = size ?? 64;
   const hasImage = typeof uri === "string" && uri.trim().length > 0;
 
-  if (hasImage) {
+  if (!hasImage) {
+    return (
+      <View
+        className="overflow-hidden rounded-xl"
+        style={{backgroundColor: THUMB_BG }}
+      >
+        <PlaceholderIcon width={size} height={size} style={{ backgroundColor: THUMB_BG}} />
+      </View>
+    );
+  } else {
     return (
       <View
         className="overflow-hidden rounded-xl"
@@ -80,13 +89,12 @@ function ProgressLine({
         <View className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: PURPLE }} />
       </View>
 
-      <View className="mt-2 flex-row items-center justify-end">
+      <View className="mt-2 flex-row items-center justify-center">
         <Text className="text-sm font-medium" style={{ color: "#4B5563" }}>
-          с. {value}
-          <Text className="text-sm font-medium" style={{ color: TEXT_MUTED }}>
-            {" "}
-            / {max}
+          <Text className="text-base font-bold" style={{ color: TEXT_MUTED }}>
+            с. {value}
           </Text>
+          {" "} / {max}
         </Text>
       </View>
     </View>
@@ -116,15 +124,37 @@ function BookCard({ title, currentPage, totalPages, coverUrl}: BookCardProps) {
   );
 }
 
+let numRend = 1;
+
 export default function BooksScreen() {
-  const books: BookCardProps[] = [
-    { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
-    { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
-    { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
-  ];
+  numRend += 1;
+  const booksRepo = useBooksRepository();
+  // const books: BookCardProps[] = [
+  //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
+  //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
+  //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
+  // ];
+
+  const [books, setBooks] = useState<BookRow[]>([] as BookRow[]);
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const list = await booksRepo.list();
+      if (cancelled) return;
+
+      setBooks(list);
+      console.log(numRend);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [booksRepo]);
+
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "bottom"]}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <Pressable
@@ -160,11 +190,11 @@ export default function BooksScreen() {
           >
             {books.map((b, idx) => (
               <BookCard
-                key={`${b.title}-${idx}`}
-                title={b.title}
-                currentPage={b.currentPage}
-                totalPages={b.totalPages}
-                coverUrl={b.coverUrl ?? null}
+                key={`${b.id_book}-${idx}`}
+                title={b.name}
+                currentPage={b.page_count}
+                totalPages={b.page_count}
+                coverUrl={b.cover_path ?? null}
               />
             ))}
 

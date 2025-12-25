@@ -1,5 +1,5 @@
 // app/(tabs)/goal.tsx
-import React from "react";
+import React, {useMemo} from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
@@ -11,11 +11,16 @@ import { Text } from "@/components/ui/text";
 // Иконки из assets/icons (названия любые — потом заменишь)
 import BackIcon from "@/assets/icons/back.svg";
 import PlusIcon from "@/assets/icons/plus.svg";
+import {router, useLocalSearchParams} from "expo-router";
 
 const PURPLE = "#7C5CFF";
 const PURPLE_SOFT = "#E9D5FF";
 const BG = "#F4F0FF";
 const TEXT_MUTED = "#7C7790";
+
+type Params = {
+  returnTo?: string;
+};
 
 function SectionTitle({ title }: { title: string }) {
   return (
@@ -104,13 +109,33 @@ function GoalCard({ percent, subtitle, title }: GoalCardProps) {
 }
 
 export default function GoalScreen() {
+  // TODO сделать нормальное скрытие кнопки
+
+  const params = useLocalSearchParams<Params>();
+  const returnTo = useMemo(() => {
+    const v = params.returnTo;
+    return typeof v === "string" && v.length > 0 ? v : undefined;
+  }, [params.returnTo]);
+  const goBack = () => {
+    if (returnTo) router.replace({ pathname: returnTo as any });
+    else router.back();
+  };
+
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "bottom"]}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
-        <Pressable className="h-10 w-10 items-center justify-center rounded-full">
-          <BackIcon width={24} height={24} color="#374151" />
-        </Pressable>
+        {returnTo !== undefined ? (
+            <Pressable
+              className="h-10 w-10 items-center justify-center rounded-full"
+              onPress={goBack}
+            >
+              <BackIcon width={24} height={24} color="#374151" />
+            </Pressable>
+        ) : (
+            <View className="p-10px"></View>
+        )}
+
 
         <Text className="text-4xl font-semibold" style={{ color: "#111827" }}>
           Цель

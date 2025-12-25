@@ -18,11 +18,15 @@ const PURPLE_SOFT = "#E9D5FF";
 const TEXT_MUTED = "#7C7790";
 
 const goToCreateBooks = (openCreate: string | null | undefined = null) => {
-  return () => router.push({ pathname: "/book-create", params: { returnTo: "/" } });
+  return () => router.push("/book-create");
+}
+
+const goToGoal = (openCreate: string | null | undefined = null) => {
+  return () => router.replace({ pathname: "/goal", params: { returnTo: "/" } });
 }
 
 const goToBooks = (openCreate: string | null | undefined = null) => {
-  return () => router.push({ pathname: "/books" })
+  return () => router.replace({ pathname: "/books", params: { returnTo: "/" } });
 
 }
 
@@ -89,9 +93,9 @@ function DayDot({ label }: { label: string }) {
 
 export default function HomeScreen() {
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]} className="flex-1 bg-[#F4F0FF]">
+    <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "top", "bottom"]} className="flex-1 bg-[#F4F0FF]">
       <View className="items-center justify-center px-4 py-4">
-        <Text className="text-4xl font-semibold" style={{ color: "#111827" }}>
+        <Text className="text-foreground text-4xl font-semibold" style={{ color: "#111827" }}>
           ReadWay
         </Text>
       </View>
@@ -125,7 +129,10 @@ export default function HomeScreen() {
           </Card>
 
           <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <Pressable className="flex-row items-center gap-4">
+            <Pressable
+              className="flex-row items-center gap-4"
+              onPress={goToGoal()}
+            >
               <CircleProgress value={0} />
 
               <View className="flex-1">

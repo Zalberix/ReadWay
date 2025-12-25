@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 // Reusables
 import { Card } from "@/components/ui/card";
@@ -15,7 +16,9 @@ import CameraIcon from "@/assets/icons/camera.svg";
 import SearchIcon from "@/assets/icons/search.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 
-import { BooksRepository } from "@/src/features/books/books.repository";
+import { useBooksRepository } from "@/src/features/books/books.repository";
+import { CoverStorage } from "@/src/features/books/cover.storage";
+import {useSQLiteContext} from "expo-sqlite";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -24,7 +27,7 @@ const TEXT_MUTED = "#7C7790";
 const INPUT_BG = "#F4F4F7";
 
 type Params = {
-  returnTo?: string; // "/", "/books"
+  returnTo?: string;
 };
 
 function SectionTitle({ title }: { title: string }) {
@@ -130,8 +133,8 @@ function BookCover({
   return (
     <View className="items-center">
       <View
-        className="relative overflow-hidden rounded-2xl shadow-sm"
-        style={{ width: 160, height: 140, backgroundColor: "#E9E4F4" }}
+        className="bg-card relative overflow-hidden rounded-2xl shadow-sm"
+        style={{ width: 160, height: 140 }}
       >
         {has ? (
           <Image source={{ uri: uri! }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
@@ -154,6 +157,8 @@ function BookCover({
 }
 
 export default function BookCreateScreen() {
+  const db = useSQLiteContext();
+  const booksRepo = useBooksRepository();
   const params = useLocalSearchParams<Params>();
   const returnTo = useMemo(() => {
     const v = params.returnTo;
@@ -176,7 +181,7 @@ export default function BookCreateScreen() {
   const [authorQuery, setAuthorQuery] = useState("");
   const [authors, setAuthors] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverPath, setCoverPath] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -189,6 +194,25 @@ export default function BookCreateScreen() {
     setAuthorQuery("");
   };
 
+  const pickCover = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+
+    if (res.canceled) return;
+
+    const uri = res.assets?.[0]?.uri;
+    if (!uri) return;
+
+    // сохраняем в documentDirectory/covers
+    const savedPath = await CoverStorage.saveFromPickerUri(uri);
+    setCoverPath(savedPath);
+  };
+
   const removeAuthor = (name: string) => {
     setAuthors((prev) => prev.filter((x) => x !== name));
   };
@@ -196,16 +220,28 @@ export default function BookCreateScreen() {
   const onSave = async () => {
     if (!canSubmit) return;
 
+
+
     const pagesNum = Number(totalPages);
-    const pages = Number.isFinite(pagesNum) && pagesNum > 0 ? Math.floor(pagesNum) : 0;
+    const pageCount = Number.isFinite(pagesNum) && pagesNum > 0 ? Math.floor(pagesNum) : 0;
+
+    const y = pubYYYY ? Number(pubYYYY) : null;
+    const m = pubMM ? Number(pubMM) : null;
+    const d = pubDD ? Number(pubDD) : null;
 
     setSaving(true);
     try {
-      // Минимальная запись в БД по текущей схеме (title/totalPages/cover)
-      await BooksRepository.create({
-        title: title.trim(),
-        totalPages: pages,
-        coverUri: coverUrl,
+      await booksRepo.createFull({
+        name: title.trim(),
+        description: description.trim().length ? description.trim() : null,
+        ISBN: isbn.trim().length ? isbn.trim() : null,
+        page_count: pageCount,
+        publisher_name: publisher.trim().length ? publisher.trim() : null,
+        year_of_publication: Number.isFinite(y as any) ? y : null,
+        month_of_publication: Number.isFinite(m as any) ? m : null,
+        day_of_publication: Number.isFinite(d as any) ? d : null,
+        cover_path: coverPath,
+        authors,
       });
 
       goBack();
@@ -241,14 +277,7 @@ export default function BookCreateScreen() {
         contentContainerClassName="px-4 pb-28"
         showsVerticalScrollIndicator={false}
       >
-        {/* Cover */}
-        <BookCover
-          uri={coverUrl}
-          onPick={() => {
-            // Заглушка: пока без выбора из галереи — можно заменить на expo-image-picker
-            // Для теста можно вставить URL руками через переменную coverUrl
-          }}
-        />
+        <BookCover uri={coverPath} onPick={pickCover} />
 
         {/* Main info */}
         <View className="mt-4">
@@ -368,21 +397,6 @@ export default function BookCreateScreen() {
               className="rounded-xl px-4 py-3 text-base"
               style={{ backgroundColor: INPUT_BG, minHeight: 110 }}
             />
-          </Card>
-        </View>
-
-        {/* Optional: Cover URL quick input (dev) */}
-        <View className="mt-6">
-          <SectionTitle title="Обложка (URL) — временно" />
-          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <Input
-              value={coverUrl ?? ""}
-              onChangeText={(v) => setCoverUrl(v.trim().length ? v : null)}
-              placeholder="https://..."
-            />
-            <Text className="mt-2 text-xs" style={{ color: TEXT_MUTED }}>
-              Это временное поле. Потом заменишь на выбор изображения из галереи.
-            </Text>
           </Card>
         </View>
 

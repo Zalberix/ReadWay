@@ -44,3 +44,6 @@ app-example
 
 /.idea/
 /.vscode/
+/assets/db.sqlite
+/assets/db.sqlite-shm
+/assets/db.sqlite-wal
