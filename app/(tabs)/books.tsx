@@ -1,9 +1,8 @@
 // app/(tabs)/books.tsx
-import React, {useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Image, Pressable, ScrollView, View} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { useEffect } from "react";
+import { router, useFocusEffect } from "expo-router";
 
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
@@ -13,6 +12,9 @@ import PlusIcon from "@/assets/icons/plus.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 
 import {BooksWithCurrentPage, useBooksRepository} from "@/src/features/books/books.repository";
+import {Sheet, SheetContent} from "@/components/ui/sheet";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -126,33 +128,29 @@ function BookCard({ title, currentPage, totalPages, coverUrl, onPress }: BookCar
   );
 }
 
-let numRend = 1;
-
 export default function BooksScreen() {
-  numRend += 1;
   const booksRepo = useBooksRepository();
-  // const books: BookCardProps[] = [
-  //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
-  //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
-  //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
-  // ];
+  const [books, setBooks] = useState<BooksWithCurrentPage[]>([]);
 
-  const [books, setBooks] = useState<BooksWithCurrentPage[]>([] as BooksWithCurrentPage[]);
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const list = await booksRepo.list();
-      if (cancelled) return;
-
-      setBooks(list);
-      console.log(numRend);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+  const load = useCallback(async () => {
+    const list = await booksRepo.list();
+    setBooks(list);
   }, [booksRepo]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+
+      (async () => {
+        const list = await booksRepo.list();
+        if (!cancelled) setBooks(list);
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [booksRepo])
+  );
 
 
   return (

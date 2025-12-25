@@ -191,6 +191,76 @@ export function useBooksRepository() {
         console.log("[db] book removed id_book =", id_book);
       },
 
+      async deleteBook(id_book: number) {
+        await db.runAsync(`DELETE FROM books WHERE id_book = ?`, [id_book]);
+      },
+
+      async updateFull(
+        id_book: number,
+        payload: {
+          cover_path: string | null;
+          name: string;
+          description: string | null;
+          ISBN: string | null;
+          page_count: number;
+          publisher_name: string | null;
+          year_of_publication: number | null;
+          month_of_publication: number | null;
+          day_of_publication: number | null;
+          authors: string[];
+        }
+      ) {
+        await db.withTransactionAsync(async () => {
+          await db.runAsync(
+            `UPDATE books
+          SET cover_path = ?,
+              name = ?,
+              description = ?,
+              ISBN = ?,
+              page_count = ?,
+              publisher_name = ?,
+              year_of_publication = ?,
+              month_of_publication = ?,
+              day_of_publication = ?
+        WHERE id_book = ?`,
+            [
+              payload.cover_path,
+              payload.name,
+              payload.description,
+              payload.ISBN,
+              payload.page_count,
+              payload.publisher_name,
+              payload.year_of_publication,
+              payload.month_of_publication,
+              payload.day_of_publication,
+              id_book,
+            ]
+          );
+
+          // пересобираем связи авторов
+          await db.runAsync(`DELETE FROM book_authors WHERE id_book = ?`, [id_book]);
+
+          for (const fullNameRaw of payload.authors) {
+            const full_name = fullNameRaw.trim();
+            if (!full_name) continue;
+
+            await db.runAsync(`INSERT OR IGNORE INTO authors(full_name) VALUES (?)`, [full_name]);
+
+            const row = await db.getFirstAsync<{ id_author: number }>(
+              `SELECT id_author FROM authors WHERE full_name = ?`,
+              [full_name]
+            );
+
+            if (!row?.id_author) continue;
+
+            await db.runAsync(
+              `INSERT OR IGNORE INTO book_authors(id_book, id_author) VALUES (?, ?)`,
+              [id_book, row.id_author]
+            );
+          }
+        });
+      },
+
       async replaceAuthors(id_book: number, authors: string[]): Promise<void> {
         await db.withTransactionAsync(async () => {
           await run(db, `DELETE FROM book_authors WHERE id_book = ?`, [id_book]);

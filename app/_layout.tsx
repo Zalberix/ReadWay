@@ -9,6 +9,7 @@ import {PortalHost} from "@rn-primitives/portal";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 import {SQLiteProvider} from "expo-sqlite";
 import {runMigrationsIfNeed} from "@/src/db/migrations";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -18,28 +19,34 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <SQLiteProvider databaseName="app.db" onInit={runMigrationsIfNeed}>
-      <SafeAreaProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="(modal)/book-create"
-              options={{ presentation: "modal", headerShown: false }}
-            />
-            <Stack.Screen
-              name="(modal)/session-create"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="(page)/book"
-              options={{ headerShown: false }}
-            />
-          </Stack>
-          <StatusBar style="auto" />
-          <PortalHost />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </SQLiteProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SQLiteProvider databaseName="app.db" onInit={runMigrationsIfNeed}>
+        <SafeAreaProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="(modal)/book-create"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/book-edit"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/session-create"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="(page)/book"
+                options={{ headerShown: false }}
+              />
+            </Stack>
+            <StatusBar style="auto" />
+            <PortalHost />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </SQLiteProvider>
+    </GestureHandlerRootView>
   );
 }

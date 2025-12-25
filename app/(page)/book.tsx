@@ -10,11 +10,19 @@ import { Text } from "@/components/ui/text";
 import BackIcon from "@/assets/icons/back.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
+import PencilIcon from "@/assets/icons/pencil.svg";
+import PlusIcon from "@/assets/icons/plus.svg";
+import PlayIcon from "@/assets/icons/play.svg";
+import TrashIcon from "@/assets/icons/trash.svg";
 
 import { useNotesRepository, type NoteRow } from "@/src/features/notes/notes.repository";
 import { useSessionsRepository, type SessionRow } from "@/src/features/sessions/sessions.repository";
 import {KeyboardAwareScrollView} from "react-native-keyboard-aware-scroll-view";
 import {useFocusEffect} from "@react-navigation/native";
+import {Button} from "@/components/ui/button";
+import {useBooksRepository} from "@/src/features/books/books.repository";
+import {Sheet, SheetContent} from "@/components/ui/sheet";
+import {Input} from "@/components/ui/input";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -91,26 +99,127 @@ function ProgressLine({
         <View className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: PURPLE }} />
       </View>
 
-      <View className="mt-2 flex-row items-center justify-center gap-2">
-        <Text className="text-sm font-medium" style={{ color: "#4B5563" }}>
-          <Text className="text-base font-bold" style={{ color: TEXT_MUTED }}>
-            с. {value}
-          </Text>
-          {" "} / {max}
-        </Text>
-
-        <Pressable
-          onPress={onEdit}
-          className="h-8 w-8 items-center justify-center rounded-full"
-          style={{ backgroundColor: PURPLE_SOFT }}
-        >
-          {/* если есть svg карандаш — замени на него */}
-          <Text className="text-base font-semibold" style={{ color: PURPLE }}>
-            ✎
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={onEdit}
+        className="mt-2 flex-row  items-center justify-center"
+      >
+      <Text className="text-sm font-medium" style={{ color: "#4B5563" }}>
+        <Text className="text-base font-bold" style={{ color: TEXT_MUTED }}>{value}</Text>
+        {" "} / {max} {" стр."}
+      </Text>
+      <PencilIcon width="20" className="text-base font-semibold" fill="#4B5563"/>
+      </Pressable>
     </View>
+  );
+}
+
+
+function genCode() {
+  // 4-значный код
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+export function DeleteBookSheet({
+                                  open,
+                                  onConfirm,
+                                  onOpenChange
+                                }: {
+  open: boolean;
+  onConfirm: () => Promise<void> | void;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const [code, setCode] = useState(() => genCode());
+  const [typed, setTyped] = useState("");
+
+  const canDelete = useMemo(() => typed.trim() === code, [typed, code]);
+
+  // при каждом открытии — новый код и чистим ввод
+  useEffect(() => {
+    if (!open) return;
+    setCode(genCode());
+    setTyped("");
+  }, [open]);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent snapPoints={["55%"]} style={{ backgroundColor: "#FAF7F2" }}>
+        <View className="items-center">
+          <Text className="text-2xl font-semibold" style={{ color: "#111827" }}>
+            Удалить книгу?
+          </Text>
+        </View>
+
+        <View className="mt-4">
+          <Text className="text-base" style={{ color: TEXT_MUTED }}>
+            Книга будет удалена вместе с заметками и сеансами.
+          </Text>
+          <Text className="mt-1 text-base font-bold" style={{ color: "#111827" }}>
+            Действие нельзя отменить.
+          </Text>
+        </View>
+
+        <View className="mt-5">
+          <Text className="text-sm font-semibold" style={{ color: TEXT_MUTED }}>
+            Для подтверждения введите число:
+          </Text>
+
+          <View className="mt-2 flex-row items-center justify-between rounded-2xl px-4 py-3" style={{ backgroundColor: BG }}>
+            <Text className="text-xl font-bold" style={{ color: PURPLE }}>
+              {code}
+            </Text>
+
+            <Pressable
+              onPress={() => {
+                setCode(genCode());
+                setTyped("");
+              }}
+              className="rounded-full px-3 py-2"
+              style={{ backgroundColor: PURPLE_SOFT }}
+            >
+              <Text className="text-sm font-semibold" style={{ color: PURPLE }}>
+                Сменить
+              </Text>
+            </Pressable>
+          </View>
+
+          <Input
+            value={typed}
+            onChangeText={(v) => setTyped(v.replace(/[^\d]/g, "").slice(0, 6))}
+            placeholder="Введите число"
+            keyboardType="number-pad"
+            className="mt-3"
+          />
+        </View>
+
+        <View className="mt-6 flex-row gap-3">
+          <Button
+            variant="secondary"
+            className="h-14 flex-1 rounded-2xl"
+            style={{ backgroundColor: PURPLE_SOFT }}
+            onPress={() => onOpenChange(false)}
+          >
+            <Text className="text-base font-semibold" style={{ color: PURPLE }}>
+              Отмена
+            </Text>
+          </Button>
+
+          <Button
+            className="h-14 flex-1 rounded-2xl"
+            style={{ backgroundColor: canDelete ? "#3B6EA0" : "#C9D7E6" }}
+            disabled={!canDelete}
+            onPress={async () => {
+              if (!canDelete) return;
+              await onConfirm();
+              onOpenChange(false);
+            }}
+          >
+            <Text className="text-base font-semibold" style={{ color: "#FFFFFF" }}>
+              Удалить
+            </Text>
+          </Button>
+        </View>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -170,6 +279,16 @@ export default function BookScreen() {
       void loadAll();
     }, [loadAll]),
   );
+
+  const booksRepo = useBooksRepository();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const onDeleteBook = useCallback(async () => {
+    if (!bookId) return;
+    await booksRepo.deleteBook(bookId);
+    setDeleteOpen(false);
+    router.back(); // или loadAll() + остаёмся на экране
+  }, [bookId, booksRepo]);
 
   // timer loop
   useEffect(() => {
@@ -232,7 +351,7 @@ export default function BookScreen() {
         </Pressable>
 
         <Text className="text-3xl font-semibold" style={{ color: "#111827" }}>
-          Чтение
+
         </Text>
 
         {/* spacer */}
@@ -248,70 +367,100 @@ export default function BookScreen() {
         extraScrollHeight={16}
       >
         {/* Book main card */}
-        <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
-          <View className="flex-row items-center gap-2">
-            <BookThumb uri={book?.cover_path ?? null} size={64} />
+        <View className="mb-4 flex-row gap-1.5">
+          {/* LEFT: твоя карточка как есть */}
+          <Card className="flex-1 rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <View className="flex-row items-center gap-2">
+              <BookThumb uri={book?.cover_path ?? null} size={64} />
 
-            <View className="flex-1">
-              <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
-                {book?.name ?? "Книга"}
-              </Text>
+              <View className="flex-1">
+                <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+                  {book?.name ?? "Книга"}
+                </Text>
 
-              <Text className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
-                {book?.created_at ? `От ${formatDateTime(book.created_at).slice(0, 8)}` : ""}
-              </Text>
-
-              <View className="mt-2 flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-                    Заметок: {notes.length}
-                  </Text>
-
-                  <Pressable onPress={() => setNoteComposerOpen(true)}>
-                    <Text className="text-lg font-semibold" style={{ color: PURPLE }}>
-                      +
+                <View className="mt-2 flex-row items-center justify-between">
+                  <View className="mt-2 flex-col justify-between">
+                    <Text className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
+                      {book?.created_at ? `От ${formatDateTime(book.created_at).slice(0, 8)}` : ""}
                     </Text>
+
+                    <View className="mt-2 flex-row items-center justify-between gap-1">
+                      <View className="flex-row items-center">
+                        <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+                          Заметок: {notes.length}
+                        </Text>
+                      </View>
+
+                      <Pressable onPress={() => setNoteComposerOpen(true)}>
+                        <PlusIcon width={16} height={16} color={PURPLE} />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    className="flex h-20 w-20 items-center justify-center rounded-full"
+                    style={{ backgroundColor: PURPLE_SOFT }}
+                    onPress={isRunning ? stopSession : startSession}
+                  >
+                    <PlayIcon color={PURPLE} />
                   </Pressable>
                 </View>
-
-                <Pressable
-                  className="h-12 w-12 items-center justify-center rounded-full"
-                  style={{ backgroundColor: PURPLE_SOFT }}
-                  onPress={isRunning ? stopSession : startSession}
-                >
-                  <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
-                    {isRunning ? "■" : "▶"}
-                  </Text>
-                </Pressable>
               </View>
+            </View>
+
+            <View className="mt-3">
+              <ProgressLine
+                value={currentPage}
+                max={totalPages}
+                onEdit={() =>
+                  router.push({
+                    pathname: "/session-create",
+                    params: {
+                      id_book: String(bookId),
+                      page: String(currentPage),
+                      max: String(totalPages),
+                    },
+                  })
+                }
+              />
+
+              {isRunning && (
+                <View className="mt-3 items-center justify-center">
+                  <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+                    Сеанс идёт: {formatMinutes(elapsedSec)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Card>
+
+          {/* RIGHT: блок кнопок ВНЕ card */}
+          <View className="gap-1.5" style={{ width: 40 }}>
+
+            <View className="rounded-2xl bg-white shadow-sm" style={{ width: 40, height: 40, padding: 0 }}>
+              <Pressable
+                onPress={() => setDeleteOpen(true)}
+                style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+              >
+                <TrashIcon width={20} height={20} color={PURPLE} />
+              </Pressable>
+            </View>
+            <View className="flex-1 rounded-2xl bg-white shadow-sm" style={{ width: 40, padding: 0 }}>
+              <Pressable
+                onPress={() =>{
+                  router.push({
+                    pathname: "/book-edit",
+                    params: { id_book: String(bookId), returnTo: "/book" },
+                  })
+                }}
+                className="flex-1 items-center justify-center"
+              >
+                <PencilIcon className="items-center justify-center" width={20} height={20} color={PURPLE} />
+              </Pressable>
             </View>
           </View>
 
-          {/* current page editor */}
-          <View>
-            <ProgressLine
-              value={currentPage}
-              max={totalPages}
-              onEdit={() =>
-                router.push({
-                  pathname: "/session-create",
-                  params: {
-                    id_book: String(bookId),
-                    page: String(currentPage),
-                    max: String(totalPages),
-                  },
-                })
-              }
-            />
-            {isRunning && (
-              <View className="mt-3 items-center justify-center">
-                <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-                  Сеанс идёт: {formatMinutes(elapsedSec)}
-                </Text>
-              </View>
-            )}
-          </View>
-        </Card>
+        </View>
 
         {/* Sessions */}
         <Pressable className="mb-3 flex-row items-center gap-2" onPress={() => {}}>
@@ -325,7 +474,7 @@ export default function BookScreen() {
         <View className="mb-6 flex-row gap-3">
           <Card className="flex-1 rounded-2xl bg-white px-4 py-4 shadow-sm">
             <Text className="text-base font-semibold" style={{ color: "#111827" }}>
-              Ваш последний сеанс
+              Последний сеанс
             </Text>
 
             <Text className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
@@ -442,6 +591,11 @@ export default function BookScreen() {
           </Card>
         )}
       </KeyboardAwareScrollView>
+      <DeleteBookSheet
+        open={deleteOpen}
+        onOpenChange={(v) => (v ? setDeleteOpen(true) : setDeleteOpen(false))}
+        onConfirm={onDeleteBook}
+      />
     </SafeAreaView>
   );
 }

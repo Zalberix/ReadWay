@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS books (
   name TEXT NOT NULL,
   description TEXT,
   ISBN TEXT,
+  status_read INTEGER,
   page_count INTEGER NOT NULL DEFAULT 0,
   publisher_name TEXT,
   year_of_publication INTEGER,

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { View, type ViewProps } from "react-native";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 
 type SheetCtx = {
@@ -56,8 +55,18 @@ export function SheetContent({
       snapPoints={points}
       enablePanDownToClose
       onChange={(idx) => {
+        // idx === -1 -> закрыт (в т.ч. тапом по фону)
         if (idx === -1) ctx.onOpenChange(false);
       }}
+      // ✅ тап по фону закрывает
+      backdropComponent={(props) => (
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          pressBehavior="close"
+        />
+      )}
       backgroundStyle={style}
       handleIndicatorStyle={{ opacity: 0.6 }}
     >
