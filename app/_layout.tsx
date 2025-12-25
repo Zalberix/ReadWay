@@ -38,6 +38,14 @@ export default function RootLayout() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="(modal)/book-sessions"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/session-edit"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="(page)/book"
                 options={{ headerShown: false }}
               />

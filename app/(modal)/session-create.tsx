@@ -334,7 +334,7 @@ export default function SessionCreateScreen() {
 
             <Button className="mt-6 h-14 rounded-2xl" style={{ backgroundColor: "#3B6EA0" }} onPress={closeSheet}>
               <Text className="text-2xl font-semibold" style={{ color: "#FFFFFF" }}>
-                ✓
+                <CheckIcon/>
               </Text>
             </Button>
           </SheetContent>

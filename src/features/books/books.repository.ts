@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useSQLiteContext, type SQLiteDatabase } from "expo-sqlite";
+import { all, get, run } from "@/src/db/utils";
 
 export type BookRow = {
   id_book: number;
@@ -45,20 +46,6 @@ function mapResult<T>(res: any): T[] {
   if (Array.isArray(res.rows)) return res.rows as T[];
   if (res.rows?._array) return res.rows._array as T[];
   return [];
-}
-
-async function all<T>(db: SQLiteDatabase, sql: string, params: any[] = []): Promise<T[]> {
-  const res = await db.getAllAsync(sql, params);
-  return res as T[];
-}
-
-async function get<T>(db: SQLiteDatabase, sql: string, params: any[] = []): Promise<T | null> {
-  const row = await db.getFirstAsync<T>(sql, params);
-  return row ?? null;
-}
-
-async function run(db: SQLiteDatabase, sql: string, params: any[] = []) {
-  return db.runAsync(sql, params);
 }
 
 // Хук-репозиторий

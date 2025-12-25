@@ -342,6 +342,37 @@ export default function BookScreen() {
 
   const totalPages = book?.page_count ?? 0;
 
+  const goCreateSession = useCallback(() => {
+    router.push({
+      pathname: "/session-create",
+      params: {
+        id_book: String(bookId),
+        page: String(currentPage),
+        max: String(totalPages),
+      },
+    });
+  }, [bookId, currentPage, totalPages]);
+
+  const goAllSessions = useCallback(() => {
+    router.push({
+      pathname: "/book-sessions",
+      params: { id_book: String(bookId) },
+    });
+  }, [bookId]);
+
+  const goEditLastSession = useCallback(() => {
+    if (!lastSession) return;
+
+    router.push({
+      pathname: "/session-edit",
+      params: {
+        id: String(lastSession.id),
+        id_book: String(bookId),
+        max: String(totalPages),
+      },
+    });
+  }, [bookId, lastSession, totalPages]);
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "top", "bottom"]}>
       {/* Header */}
@@ -463,45 +494,65 @@ export default function BookScreen() {
         </View>
 
         {/* Sessions */}
-        <Pressable className="mb-3 flex-row items-center gap-2" onPress={() => {}}>
-          <View className="h-4 w-1 rounded-full" style={{ backgroundColor: PURPLE_SOFT }} />
-          <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
-            Сеансы
-          </Text>
-          <ChevronRightIcon width={18} height={18} color="#6B677A" />
-        </Pressable>
+        <View className="mb-3 flex-row items-center justify-between">
+          <Pressable className="flex-row items-center gap-2" onPress={goAllSessions}>
+            <View className="h-4 w-1 rounded-full" style={{ backgroundColor: PURPLE_SOFT }} />
+            <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+              Сессии
+            </Text>
+            <ChevronRightIcon width={18} height={18} color="#6B677A" />
+          </Pressable>
 
-        <View className="mb-6 flex-row gap-3">
-          <Card className="flex-1 rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <Text className="text-base font-semibold" style={{ color: "#111827" }}>
+          <Pressable className="flex-row items-center gap-2" onPress={goCreateSession}>
+            <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+              Добавить
+            </Text>
+            <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+              +
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Last session card */}
+        <Card className="mb-6 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-2xl font-semibold" style={{ color: "#111827" }}>
               Последний сеанс
             </Text>
 
-            <Text className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
-              {lastSession ? formatMinutes(lastSession.time) : "Нет данных"}
+            <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+              {lastSession ? formatDateTime(lastSession.created_at) : ""}
+            </Text>
+          </View>
+
+          <Text className="mt-3 text-3xl font-semibold" style={{ color: "#111827" }}>
+            {lastSession ? formatMinutes(lastSession.time) : "Нет данных"}
+          </Text>
+
+          <View className="mt-3 h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: PURPLE_SOFT }}>
+            <View
+              className="h-full rounded-full"
+              style={{
+                width:
+                  totalPages > 0 && lastSession
+                    ? `${Math.max(0, Math.min(1, lastSession.current_page / totalPages)) * 100}%`
+                    : "0%",
+                backgroundColor: PURPLE,
+              }}
+            />
+          </View>
+
+          {/* кликабельные цифры + карандаш */}
+          <Pressable onPress={goEditLastSession} className="mt-3 flex-row items-center justify-center gap-2">
+            <Text className="text-2xl font-semibold" style={{ color: TEXT_MUTED }}>
+              {lastSession ? `${lastSession.current_page} / ${totalPages} стр.` : `0 / ${totalPages} стр.`}
+              {lastSession ? ` (+${lastSession.current_page})` : ""}
             </Text>
 
-            <View className="mt-3">
-              <View className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: PURPLE_SOFT }}>
-                <View
-                  className="h-full rounded-full"
-                  style={{
-                    width:
-                      totalPages > 0 && lastSession
-                        ? `${Math.max(0, Math.min(1, lastSession.current_page / totalPages)) * 100}%`
-                        : "0%",
-                    backgroundColor: PURPLE,
-                  }}
-                />
-              </View>
-
-              <Text className="mt-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
-                {lastSession ? `с. ${lastSession.current_page}` : "с. 0"}
-                {lastSession ? ` (${lastSession.current_page >= 0 ? "+" : ""}${lastSession.current_page})` : ""}
-              </Text>
-            </View>
-          </Card>
-        </View>
+            {/* твой PencilIcon */}
+            <PencilIcon width={18} height={18} color={PURPLE} />
+          </Pressable>
+        </Card>
 
         {/* Notes */}
         <View className="mb-2 flex-row items-center justify-between">
