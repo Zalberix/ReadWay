@@ -15,6 +15,10 @@ export type BookRow = {
   created_at: string;
 };
 
+export type BooksWithCurrentPage = BookRow & {
+  currentPage: number;
+}
+
 export type BookWithAuthorsRow = BookRow & {
   authors: string[]; // full_name[]
 };
@@ -63,8 +67,17 @@ export function useBooksRepository() {
 
   return useMemo(() => {
     return {
-      async list(): Promise<BookRow[]> {
-        return all<BookRow>(db, `SELECT * FROM books ORDER BY datetime(created_at) DESC`);
+      async list(): Promise<BooksWithCurrentPage[]> {
+        return all<BooksWithCurrentPage>(db, `SELECT b.*, COALESCE(
+                (
+                    SELECT s.current_page
+                    FROM sessions s
+                    WHERE s.id_book = b.id_book
+                    ORDER BY datetime(s.created_at) DESC, s.id DESC
+                LIMIT 1
+            ),
+    0
+  ) AS currentPage FROM books b ORDER BY datetime(b.created_at) DESC`);
       },
 
       async getById(id_book: number): Promise<BookRow | null> {

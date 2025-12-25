@@ -1,4 +1,5 @@
-import { db } from "@/src/db/sqlite.service";
+import { useMemo } from "react";
+import { useSQLiteContext } from "expo-sqlite";
 
 export type NoteRow = {
   id_note: number;
@@ -7,32 +8,38 @@ export type NoteRow = {
   created_at: string;
 };
 
-export const NotesRepository = {
-  async listByBook(id_book: number): Promise<NoteRow[]> {
-    return db.all<NoteRow>(
-      `SELECT * FROM notes WHERE id_book = ? ORDER BY datetime(created_at) DESC`,
-      [id_book]
-    );
-  },
-
-  async getById(id_note: number): Promise<NoteRow | null> {
-    return db.get<NoteRow>(`SELECT * FROM notes WHERE id_note = ?`, [id_note]);
-  },
-
-  async create(input: { id_book: number; text: string }): Promise<number> {
-    const createdAt = new Date().toISOString();
-    const res = await db.run(
-      `INSERT INTO notes(id_book, text, created_at) VALUES(?, ?, ?)`,
-      [input.id_book, input.text, createdAt]
-    );
-    return Number(res.lastInsertRowId);
-  },
-
-  async update(id_note: number, text: string): Promise<void> {
-    await db.run(`UPDATE notes SET text = ? WHERE id_note = ?`, [text, id_note]);
-  },
-
-  async remove(id_note: number): Promise<void> {
-    await db.run(`DELETE FROM notes WHERE id_note = ?`, [id_note]);
-  },
+export type CreateNoteInput = {
+  id_book: number;
+  text: string;
 };
+
+export function useNotesRepository() {
+  const db = useSQLiteContext();
+
+  return useMemo(() => {
+    return {
+      async listByBook(id_book: number): Promise<NoteRow[]> {
+        return await db.getAllAsync<NoteRow>(
+          `SELECT id_note, id_book, text, created_at
+           FROM notes
+           WHERE id_book = ?
+           ORDER BY datetime(created_at) DESC`,
+          [id_book],
+        );
+      },
+
+      async create(input: CreateNoteInput): Promise<number> {
+        const res = await db.runAsync(
+          `INSERT INTO notes (id_book, text) VALUES (?, ?)`,
+          [input.id_book, input.text],
+        );
+        return Number(res.lastInsertRowId ?? 0);
+      },
+
+      async delete(id_note: number): Promise<boolean> {
+        const res = await db.runAsync(`DELETE FROM notes WHERE id_note = ?`, [id_note]);
+        return Number(res.changes ?? 0) > 0;
+      },
+    };
+  }, [db]);
+}

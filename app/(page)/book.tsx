@@ -1,0 +1,447 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+
+import { Card } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
+
+import BackIcon from "@/assets/icons/back.svg";
+import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
+
+import { useNotesRepository, type NoteRow } from "@/src/features/notes/notes.repository";
+import { useSessionsRepository, type SessionRow } from "@/src/features/sessions/sessions.repository";
+import {KeyboardAwareScrollView} from "react-native-keyboard-aware-scroll-view";
+import {useFocusEffect} from "@react-navigation/native";
+
+const BG = "#F4F0FF";
+const PURPLE = "#7C5CFF";
+const PURPLE_SOFT = "#E9D5FF";
+const TEXT_MUTED = "#7C7790";
+
+const THUMB_BG = "#E9E4F4";
+
+type BookRow = {
+  id_book: number;
+  cover_path: string | null;
+  name: string;
+  description: string | null;
+  ISBN: string | null;
+  page_count: number;
+  publisher_name: string | null;
+  year_of_publication: number | null;
+  month_of_publication: number | null;
+  day_of_publication: number | null;
+  created_at: string;
+};
+
+function formatDateTime(sqliteDate: string) {
+  // sqliteDate: "YYYY-MM-DD HH:MM:SS"
+  const d = new Date(sqliteDate.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) return sqliteDate;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${yy} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatMinutes(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  if (m <= 0) return "меньше минуты";
+  if (m === 1) return "1 минута";
+  if (m >= 2 && m <= 4) return `${m} минуты`;
+  return `${m} минут`;
+}
+
+function BookThumb({ uri, size = 56 }: { uri?: string | null; size?: number }) {
+  const s = size ?? 64;
+  const hasImage = typeof uri === "string" && uri.trim().length > 0;
+
+  if (!hasImage) {
+    return (
+      <View className="overflow-hidden rounded-xl" style={{ width: s, height: s, backgroundColor: THUMB_BG }}>
+        <PlaceholderIcon width={s} height={s} />
+      </View>
+    );
+  }
+
+  return (
+    <View className="overflow-hidden rounded-xl" style={{ width: s, height: s, backgroundColor: THUMB_BG }}>
+      <Image source={{ uri: uri! }} style={{ width: s, height: s }} resizeMode="cover" />
+    </View>
+  );
+}
+
+function ProgressLine({
+                        value,
+                        max,
+                        onEdit,
+                      }: {
+  value: number;
+  max: number;
+  onEdit?: () => void;
+}) {
+  const pct = max <= 0 ? 0 : Math.max(0, Math.min(1, value / max));
+
+  return (
+    <View className="mt-2">
+      <View className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: PURPLE_SOFT }}>
+        <View className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: PURPLE }} />
+      </View>
+
+      <View className="mt-2 flex-row items-center justify-center gap-2">
+        <Text className="text-sm font-medium" style={{ color: "#4B5563" }}>
+          <Text className="text-base font-bold" style={{ color: TEXT_MUTED }}>
+            с. {value}
+          </Text>
+          {" "} / {max}
+        </Text>
+
+        <Pressable
+          onPress={onEdit}
+          className="h-8 w-8 items-center justify-center rounded-full"
+          style={{ backgroundColor: PURPLE_SOFT }}
+        >
+          {/* если есть svg карандаш — замени на него */}
+          <Text className="text-base font-semibold" style={{ color: PURPLE }}>
+            ✎
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export default function BookScreen() {
+  const db = useSQLiteContext();
+  const notesRepo = useNotesRepository();
+  const sessionsRepo = useSessionsRepository();
+
+  const params = useLocalSearchParams<{ id_book?: string }>();
+  const bookId = useMemo(() => {
+    const n = Number(params.id_book);
+    return Number.isFinite(n) ? n : 0;
+  }, [params.id_book]);
+
+  const [book, setBook] = useState<BookRow | null>(null);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const lastSession = sessions[0] ?? null;
+
+  const [currentPage, setCurrentPage] = useState<number>(0);
+
+  // notes create
+  const [noteText, setNoteText] = useState("");
+  const [noteComposerOpen, setNoteComposerOpen] = useState(false);
+
+  // session timer
+  const [isRunning, setIsRunning] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const startedAtRef = useRef<number | null>(null);
+  const tickRef = useRef<any>(null);
+
+  const loadAll = useCallback(async () => {
+    if (!bookId) return;
+
+    const b = await db.getFirstAsync<BookRow>(
+      `SELECT
+         id_book, cover_path, name, description, ISBN, page_count, publisher_name,
+         year_of_publication, month_of_publication, day_of_publication, created_at
+       FROM books
+       WHERE id_book = ?`,
+      [bookId],
+    );
+
+    const n = await notesRepo.listByBook(bookId);
+    const s = await sessionsRepo.listByBook(bookId, 10);
+
+    setBook(b ?? null);
+    setNotes(n);
+    setSessions(s);
+
+    const pageFromLast = s[0]?.current_page ?? 0;
+    setCurrentPage(pageFromLast);
+  }, [bookId, db, notesRepo, sessionsRepo]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadAll();
+    }, [loadAll]),
+  );
+
+  // timer loop
+  useEffect(() => {
+    if (!isRunning) return;
+
+    tickRef.current = setInterval(() => {
+      const start = startedAtRef.current;
+      if (!start) return;
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    }, 500);
+
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      tickRef.current = null;
+    };
+  }, [isRunning]);
+
+  const startSession = useCallback(() => {
+    startedAtRef.current = Date.now();
+    setElapsedSec(0);
+    setIsRunning(true);
+  }, []);
+
+  const stopSession = useCallback(async () => {
+    const start = startedAtRef.current;
+    startedAtRef.current = null;
+    setIsRunning(false);
+
+    const duration = start ? Math.max(0, Math.floor((Date.now() - start) / 1000)) : elapsedSec;
+    if (!bookId) return;
+
+    // сохраняем сеанс
+    await sessionsRepo.create({
+      id_book: bookId,
+      time: duration,
+      current_page: currentPage,
+    });
+
+    await loadAll();
+  }, [bookId, currentPage, elapsedSec, loadAll, sessionsRepo]);
+
+  const saveNote = useCallback(async () => {
+    const text = noteText.trim();
+    if (!text || !bookId) return;
+
+    await notesRepo.create({ id_book: bookId, text });
+    setNoteText("");
+    setNoteComposerOpen(false);
+    await loadAll();
+  }, [bookId, loadAll, noteText, notesRepo]);
+
+  const totalPages = book?.page_count ?? 0;
+
+  return (
+    <SafeAreaView className="flex-1" style={{ backgroundColor: BG }} edges={["left", "right", "top", "bottom"]}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <Pressable className="h-10 w-10 items-center justify-center rounded-full" onPress={() => router.back()}>
+          <BackIcon width={24} height={24} color="#374151" />
+        </Pressable>
+
+        <Text className="text-3xl font-semibold" style={{ color: "#111827" }}>
+          Чтение
+        </Text>
+
+        {/* spacer */}
+        <View className="h-10 w-10" />
+      </View>
+
+      <KeyboardAwareScrollView
+        className="flex-1"
+        contentContainerClassName="px-4 pb-28"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={16}
+      >
+        {/* Book main card */}
+        <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <View className="flex-row items-center gap-2">
+            <BookThumb uri={book?.cover_path ?? null} size={64} />
+
+            <View className="flex-1">
+              <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+                {book?.name ?? "Книга"}
+              </Text>
+
+              <Text className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
+                {book?.created_at ? `От ${formatDateTime(book.created_at).slice(0, 8)}` : ""}
+              </Text>
+
+              <View className="mt-2 flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+                    Заметок: {notes.length}
+                  </Text>
+
+                  <Pressable onPress={() => setNoteComposerOpen(true)}>
+                    <Text className="text-lg font-semibold" style={{ color: PURPLE }}>
+                      +
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  className="h-12 w-12 items-center justify-center rounded-full"
+                  style={{ backgroundColor: PURPLE_SOFT }}
+                  onPress={isRunning ? stopSession : startSession}
+                >
+                  <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+                    {isRunning ? "■" : "▶"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+
+          {/* current page editor */}
+          <View>
+            <ProgressLine
+              value={currentPage}
+              max={totalPages}
+              onEdit={() =>
+                router.push({
+                  pathname: "/session-create",
+                  params: {
+                    id_book: String(bookId),
+                    page: String(currentPage),
+                    max: String(totalPages),
+                  },
+                })
+              }
+            />
+            {isRunning && (
+              <View className="mt-3 items-center justify-center">
+                <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+                  Сеанс идёт: {formatMinutes(elapsedSec)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Card>
+
+        {/* Sessions */}
+        <Pressable className="mb-3 flex-row items-center gap-2" onPress={() => {}}>
+          <View className="h-4 w-1 rounded-full" style={{ backgroundColor: PURPLE_SOFT }} />
+          <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+            Сеансы
+          </Text>
+          <ChevronRightIcon width={18} height={18} color="#6B677A" />
+        </Pressable>
+
+        <View className="mb-6 flex-row gap-3">
+          <Card className="flex-1 rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Text className="text-base font-semibold" style={{ color: "#111827" }}>
+              Ваш последний сеанс
+            </Text>
+
+            <Text className="mt-1 text-sm" style={{ color: TEXT_MUTED }}>
+              {lastSession ? formatMinutes(lastSession.time) : "Нет данных"}
+            </Text>
+
+            <View className="mt-3">
+              <View className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: PURPLE_SOFT }}>
+                <View
+                  className="h-full rounded-full"
+                  style={{
+                    width:
+                      totalPages > 0 && lastSession
+                        ? `${Math.max(0, Math.min(1, lastSession.current_page / totalPages)) * 100}%`
+                        : "0%",
+                    backgroundColor: PURPLE,
+                  }}
+                />
+              </View>
+
+              <Text className="mt-2 text-sm font-medium" style={{ color: TEXT_MUTED }}>
+                {lastSession ? `с. ${lastSession.current_page}` : "с. 0"}
+                {lastSession ? ` (${lastSession.current_page >= 0 ? "+" : ""}${lastSession.current_page})` : ""}
+              </Text>
+            </View>
+          </Card>
+        </View>
+
+        {/* Notes */}
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+            Заметки
+          </Text>
+
+          <Pressable onPress={() => setNoteComposerOpen((v) => !v)} className="flex-row items-center gap-2">
+            <Text className="text-sm font-semibold" style={{ color: "#6B677A" }}>
+              ДОБАВИТЬ
+            </Text>
+            <Text className="text-lg font-semibold" style={{ color: PURPLE }}>
+              +
+            </Text>
+          </Pressable>
+        </View>
+
+        {noteComposerOpen && (
+          <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Text className="text-sm font-semibold" style={{ color: "#111827" }}>
+              Новая заметка
+            </Text>
+
+            <TextInput
+              value={noteText}
+              onChangeText={setNoteText}
+              placeholder="Текст заметки..."
+              placeholderTextColor={TEXT_MUTED}
+              multiline
+              className="mt-3 min-h-[96px] rounded-2xl border px-3 py-3 text-base"
+              style={{ borderColor: PURPLE_SOFT, color: "#111827", backgroundColor: "#FFFFFF" }}
+            />
+
+            <View className="mt-3 flex-row justify-end gap-2">
+              <Pressable
+                className="rounded-xl px-4 py-2"
+                style={{ backgroundColor: PURPLE_SOFT }}
+                onPress={() => {
+                  setNoteComposerOpen(false);
+                  setNoteText("");
+                }}
+              >
+                <Text className="text-sm font-semibold" style={{ color: PURPLE }}>
+                  Отмена
+                </Text>
+              </Pressable>
+
+              <Pressable
+                className="rounded-xl px-4 py-2"
+                style={{ backgroundColor: PURPLE }}
+                onPress={saveNote}
+              >
+                <Text className="text-sm font-semibold" style={{ color: "#FFFFFF" }}>
+                  Сохранить
+                </Text>
+              </Pressable>
+            </View>
+          </Card>
+        )}
+
+        {notes.length === 0 ? (
+          <View className="items-center justify-center py-8">
+            <Text className="text-base" style={{ color: TEXT_MUTED }}>
+              Заметок пока нет
+            </Text>
+          </View>
+        ) : (
+          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            {notes.map((n, idx) => (
+              <View key={`${n.id_note}-${idx}`} className="py-3">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm font-semibold" style={{ color: "#111827" }}>
+                    Заметка
+                  </Text>
+                  <Text className="text-xs" style={{ color: TEXT_MUTED }}>
+                    {formatDateTime(n.created_at)}
+                  </Text>
+                </View>
+
+                <Text className="mt-2 text-base" style={{ color: "#111827" }}>
+                  {n.text}
+                </Text>
+
+                {idx !== notes.length - 1 && <View className="mt-4 h-px" style={{ backgroundColor: PURPLE_SOFT }} />}
+              </View>
+            ))}
+          </Card>
+        )}
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
+  );
+}

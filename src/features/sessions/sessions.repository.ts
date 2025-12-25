@@ -1,54 +1,58 @@
-import { db } from "@/src/db/sqlite.service";
+import { useMemo } from "react";
+import { useSQLiteContext } from "expo-sqlite";
 
 export type SessionRow = {
   id: number;
   id_book: number;
-  time: number;
+  time: number; // seconds
   current_page: number;
   created_at: string;
 };
 
-export const SessionsRepository = {
-  async listByBook(id_book: number): Promise<SessionRow[]> {
-    return db.all<SessionRow>(
-      `SELECT * FROM sessions WHERE id_book = ? ORDER BY datetime(created_at) DESC`,
-      [id_book]
-    );
-  },
-
-  async getById(id: number): Promise<SessionRow | null> {
-    return db.get<SessionRow>(`SELECT * FROM sessions WHERE id = ?`, [id]);
-  },
-
-  async create(input: { id_book: number; time: number; current_page: number }): Promise<number> {
-    const createdAt = new Date().toISOString();
-    const res = await db.run(
-      `INSERT INTO sessions(id_book, time, current_page, created_at) VALUES(?, ?, ?, ?)`,
-      [input.id_book, input.time, input.current_page, createdAt]
-    );
-    return Number(res.lastInsertRowId);
-  },
-
-  async update(id: number, patch: Partial<Pick<SessionRow, "time" | "current_page">>): Promise<void> {
-    const fields: string[] = [];
-    const params: any[] = [];
-
-    if (typeof patch.time !== "undefined") {
-      fields.push(`time = ?`);
-      params.push(patch.time);
-    }
-    if (typeof patch.current_page !== "undefined") {
-      fields.push(`current_page = ?`);
-      params.push(patch.current_page);
-    }
-
-    if (!fields.length) return;
-    params.push(id);
-
-    await db.run(`UPDATE sessions SET ${fields.join(", ")} WHERE id = ?`, params);
-  },
-
-  async remove(id: number): Promise<void> {
-    await db.run(`DELETE FROM sessions WHERE id = ?`, [id]);
-  },
+export type CreateSessionInput = {
+  id_book: number;
+  time: number; // seconds
+  current_page: number;
+  created_at?: string; // "YYYY-MM-DD HH:MM:SS"
 };
+
+export function useSessionsRepository() {
+  const db = useSQLiteContext();
+
+  return useMemo(() => {
+    return {
+      async listByBook(id_book: number, limit = 20): Promise<SessionRow[]> {
+        return await db.getAllAsync<SessionRow>(
+          `SELECT id, id_book, time, current_page, created_at
+           FROM sessions
+           WHERE id_book = ?
+           ORDER BY datetime(created_at) DESC
+               LIMIT ?`,
+          [id_book, limit],
+        );
+      },
+
+      async create(input: CreateSessionInput): Promise<number> {
+        if (input.created_at) {
+          const res = await db.runAsync(
+            `INSERT INTO sessions (id_book, time, current_page, created_at)
+             VALUES (?, ?, ?, ?)`,
+            [input.id_book, input.time, input.current_page, input.created_at],
+          );
+          return Number(res.lastInsertRowId ?? 0);
+        }
+
+        const res = await db.runAsync(
+          `INSERT INTO sessions (id_book, time, current_page) VALUES (?, ?, ?)`,
+          [input.id_book, input.time, input.current_page],
+        );
+        return Number(res.lastInsertRowId ?? 0);
+      },
+
+      async delete(id: number): Promise<boolean> {
+        const res = await db.runAsync(`DELETE FROM sessions WHERE id = ?`, [id]);
+        return Number(res.changes ?? 0) > 0;
+      },
+    };
+  }, [db]);
+}

@@ -27,6 +27,14 @@ export default function RootLayout() {
               name="(modal)/book-create"
               options={{ presentation: "modal", headerShown: false }}
             />
+            <Stack.Screen
+              name="(modal)/session-create"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="(page)/book"
+              options={{ headerShown: false }}
+            />
           </Stack>
           <StatusBar style="auto" />
           <PortalHost />

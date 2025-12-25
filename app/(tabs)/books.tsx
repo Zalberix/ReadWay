@@ -1,8 +1,8 @@
 // app/(tabs)/books.tsx
-import React, {useMemo, useState} from "react";
+import React, {useState} from "react";
 import {Image, Pressable, ScrollView, View} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { useEffect } from "react";
 
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import BackIcon from "@/assets/icons/back.svg";
 import PlusIcon from "@/assets/icons/plus.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 
-import {BookRow, useBooksRepository} from "@/src/features/books/books.repository";
+import {BooksWithCurrentPage, useBooksRepository} from "@/src/features/books/books.repository";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -108,19 +108,21 @@ type BookCardProps = {
   coverUrl?: string | null;
 };
 
-function BookCard({ title, currentPage, totalPages, coverUrl}: BookCardProps) {
+function BookCard({ title, currentPage, totalPages, coverUrl, onPress }: BookCardProps & { onPress: () => void }) {
   return (
-    <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
-      <View className="flex-row items-center gap-4">
-        <BookThumb uri={coverUrl} title={title} size={64} />
-        <View className="flex-1">
-          <Text className="text-lg font-semibold" style={{ color: "#111827" }}>
-            {title}
-          </Text>
-          <ProgressLine value={currentPage} max={totalPages} />
+    <Pressable onPress={onPress}>
+      <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+        <View className="flex-row items-center gap-4">
+          <BookThumb uri={coverUrl} title={title} size={64} />
+          <View className="flex-1">
+            <Text className="text-lg font-semibold" style={{ color: "#111827" }}>
+              {title}
+            </Text>
+            <ProgressLine value={currentPage} max={totalPages} />
+          </View>
         </View>
-      </View>
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -135,7 +137,7 @@ export default function BooksScreen() {
   //   { title: "Название книги", currentPage: 70, totalPages: 350, coverUrl:null },
   // ];
 
-  const [books, setBooks] = useState<BookRow[]>([] as BookRow[]);
+  const [books, setBooks] = useState<BooksWithCurrentPage[]>([] as BooksWithCurrentPage[]);
   useEffect(() => {
     let cancelled = false;
 
@@ -192,9 +194,15 @@ export default function BooksScreen() {
               <BookCard
                 key={`${b.id_book}-${idx}`}
                 title={b.name}
-                currentPage={b.page_count}
+                currentPage={b.currentPage}
                 totalPages={b.page_count}
                 coverUrl={b.cover_path ?? null}
+                onPress={() =>
+                  router.push({
+                    pathname: "/book",
+                    params: { id_book: String(b.id_book) },
+                  })
+                }
               />
             ))}
 

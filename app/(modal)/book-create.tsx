@@ -1,6 +1,6 @@
 // app/(modals)/book-create.tsx
 import React, { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import {Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -19,6 +19,7 @@ import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 import { useBooksRepository } from "@/src/features/books/books.repository";
 import { CoverStorage } from "@/src/features/books/cover.storage";
 import {useSQLiteContext} from "expo-sqlite";
+import {KeyboardAwareScrollView} from "react-native-keyboard-aware-scroll-view";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -272,136 +273,135 @@ export default function BookCreateScreen() {
         </Pressable>
       </View>
 
-      <ScrollView
+
+      <KeyboardAwareScrollView
         className="flex-1"
         contentContainerClassName="px-4 pb-28"
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={16}
       >
-        <BookCover uri={coverPath} onPick={pickCover} />
+          <BookCover uri={coverPath} onPick={pickCover} />
 
-        {/* Main info */}
-        <View className="mt-4">
-          <SectionTitle title="Основная информация" />
+          <View className="mt-4">
+            <SectionTitle title="Основная информация" />
 
-          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <View className="mb-3">
-              <FieldLabel>Заголовок</FieldLabel>
-              <Input value={title} onChangeText={setTitle} placeholder="Название книги" />
-            </View>
+            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+              <View className="mb-3">
+                <FieldLabel>Заголовок</FieldLabel>
+                <Input value={title} onChangeText={setTitle} placeholder="Название книги" />
+              </View>
 
-            <View className="mb-3">
-              <FieldLabel>ISBN</FieldLabel>
-              <Input value={isbn} onChangeText={setIsbn} placeholder="Номер" />
-            </View>
+              <View className="mb-3">
+                <FieldLabel>ISBN</FieldLabel>
+                <Input value={isbn} onChangeText={setIsbn} placeholder="Номер" />
+              </View>
 
-            <View>
-              <FieldLabel>Всего страниц</FieldLabel>
-              <Input
-                value={totalPages}
-                onChangeText={(v) => setTotalPages(v.replace(/\D/g, ""))}
-                placeholder="Количество страниц"
-                keyboardType="number-pad"
-              />
-            </View>
-          </Card>
-        </View>
-
-        {/* Publication */}
-        <View className="mt-6">
-          <SectionTitle title="Информация о публикации" />
-
-          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <View className="mb-3">
-              <FieldLabel>Издатель</FieldLabel>
-              <Input value={publisher} onChangeText={setPublisher} placeholder="Наименование издателя" />
-            </View>
-
-            <View>
-              <FieldLabel>Дата публикации</FieldLabel>
-              <Date3Input
-                day={pubDD}
-                month={pubMM}
-                year={pubYYYY}
-                setDay={setPubDD}
-                setMonth={setPubMM}
-                setYear={setPubYYYY}
-              />
-            </View>
-          </Card>
-        </View>
-
-        {/* Authors */}
-        <View className="mt-6">
-          <SectionTitle title="Авторы" />
-
-          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <View className="flex-row items-center gap-2">
-              <View className="flex-1">
-                <TextInput
-                  value={authorQuery}
-                  onChangeText={setAuthorQuery}
-                  placeholder="ФИО"
-                  placeholderTextColor="#9CA3AF"
-                  className="rounded-xl px-4 py-3 text-base"
-                  style={{ backgroundColor: INPUT_BG }}
+              <View>
+                <FieldLabel>Всего страниц</FieldLabel>
+                <Input
+                  value={totalPages}
+                  onChangeText={(v) => setTotalPages(v.replace(/\D/g, ""))}
+                  placeholder="Количество страниц"
+                  keyboardType="number-pad"
                 />
               </View>
+            </Card>
+          </View>
 
-              <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: INPUT_BG }}>
-                <SearchIcon width={18} height={18} color="#6B677A" />
+          {/* Publication */}
+          <View className="mt-6">
+            <SectionTitle title="Информация о публикации" />
+
+            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+              <View className="mb-3">
+                <FieldLabel>Издатель</FieldLabel>
+                <Input value={publisher} onChangeText={setPublisher} placeholder="Наименование издателя" />
               </View>
-            </View>
 
-            {authors.length > 0 && (
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                {authors.map((a) => (
-                  <Pressable
-                    key={a}
-                    onPress={() => removeAuthor(a)}
-                    className="rounded-full px-3 py-2"
-                    style={{ backgroundColor: PURPLE_SOFT }}
-                  >
-                    <Text className="text-sm font-medium" style={{ color: "#111827" }}>
-                      {a} ✕
-                    </Text>
-                  </Pressable>
-                ))}
+              <View>
+                <FieldLabel>Дата публикации</FieldLabel>
+                <Date3Input
+                  day={pubDD}
+                  month={pubMM}
+                  year={pubYYYY}
+                  setDay={setPubDD}
+                  setMonth={setPubMM}
+                  setYear={setPubYYYY}
+                />
               </View>
-            )}
+            </Card>
+          </View>
 
-            <Pressable onPress={addAuthor} className="mt-4 items-center justify-center">
+          {/* Authors */}
+          <View className="mt-6">
+            <SectionTitle title="Авторы" />
+
+            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
               <View className="flex-row items-center gap-2">
-                <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
-                  Добавить
-                </Text>
-                <Text className="text-2xl font-semibold" style={{ color: PURPLE }}>
-                  +
-                </Text>
+                <View className="flex-1">
+                  <TextInput
+                    value={authorQuery}
+                    onChangeText={setAuthorQuery}
+                    placeholder="ФИО"
+                    placeholderTextColor="#9CA3AF"
+                    className="rounded-xl px-4 py-3 text-base"
+                    style={{ backgroundColor: INPUT_BG }}
+                  />
+                </View>
               </View>
-            </Pressable>
-          </Card>
-        </View>
 
-        {/* Description */}
-        <View className="mt-6">
-          <SectionTitle title="Описание" />
+              {authors.length > 0 && (
+                <View className="mt-3 flex-row flex-wrap gap-2">
+                  {authors.map((a) => (
+                    <Pressable
+                      key={a}
+                      onPress={() => removeAuthor(a)}
+                      className="rounded-full px-3 py-2"
+                      style={{ backgroundColor: PURPLE_SOFT }}
+                    >
+                      <Text className="text-sm font-medium" style={{ color: "#111827" }}>
+                        {a} ✕
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
 
-          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-            <TextInput
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Описание книги"
-              placeholderTextColor="#9CA3AF"
-              multiline
-              textAlignVertical="top"
-              className="rounded-xl px-4 py-3 text-base"
-              style={{ backgroundColor: INPUT_BG, minHeight: 110 }}
-            />
-          </Card>
-        </View>
+              <Pressable onPress={addAuthor} className="mt-4 items-center justify-center">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+                    Добавить
+                  </Text>
+                  <Text className="text-2xl font-semibold" style={{ color: PURPLE }}>
+                    +
+                  </Text>
+                </View>
+              </Pressable>
+            </Card>
+          </View>
 
-        <View className="h-6" />
-      </ScrollView>
+          {/* Description */}
+          <View className="mt-6">
+            <SectionTitle title="Описание" />
+
+            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Описание книги"
+                placeholderTextColor="#9CA3AF"
+                multiline
+                textAlignVertical="top"
+                className="rounded-xl px-4 py-3 text-base"
+                style={{ backgroundColor: INPUT_BG, minHeight: 110 }}
+              />
+            </Card>
+          </View>
+
+          <View className="h-6" />
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
