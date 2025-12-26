@@ -38,11 +38,19 @@ export default function RootLayout() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
-                name="(modal)/book-sessions"
+                name="(modal)/session-edit"
                 options={{ headerShown: false }}
               />
               <Stack.Screen
-                name="(modal)/session-edit"
+                name="(modal)/note-create"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/note-edit"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/book-sessions"
                 options={{ headerShown: false }}
               />
               <Stack.Screen

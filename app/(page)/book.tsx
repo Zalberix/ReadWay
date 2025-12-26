@@ -250,10 +250,6 @@ export default function BookScreen() {
 
   const [currentPage, setCurrentPage] = useState<number>(0);
 
-  // notes create
-  const [noteText, setNoteText] = useState("");
-  const [noteComposerOpen, setNoteComposerOpen] = useState(false);
-
   // session timer
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -339,17 +335,21 @@ export default function BookScreen() {
     await loadAll();
   }, [bookId, currentPage, elapsedSec, loadAll, sessionsRepo]);
 
-  const saveNote = useCallback(async () => {
-    const text = noteText.trim();
-    if (!text || !bookId) return;
-
-    await notesRepo.create({ id_book: bookId, text });
-    setNoteText("");
-    setNoteComposerOpen(false);
-    await loadAll();
-  }, [bookId, loadAll, noteText, notesRepo]);
-
   const totalPages = book?.page_count ?? 0;
+
+  const goCreateNote = useCallback(() => {
+    router.push({
+      pathname: "/note-create",
+      params: { id_book: String(bookId), returnTo: "/book" },
+    });
+  }, [bookId]);
+
+  const goEditNote = useCallback((id_note: number) => {
+    router.push({
+      pathname: "/note-edit",
+      params: { id_note: String(id_note), id_book: String(bookId), returnTo: "/book" },
+    });
+  }, [bookId]);
 
   const goCreateSession = useCallback(() => {
     router.push({
@@ -424,14 +424,11 @@ export default function BookScreen() {
                       {book?.created_at ? `От ${formatDateTime(book.created_at).slice(0, 8)}` : ""}
                     </Text>
 
-                    <View className="mt-2 flex-row items-center justify-between gap-1">
-                      <View className="flex-row items-center">
+                    <View className="mt-2 flex-row items-center justify-between">
+                      <Pressable className="flex-row items-center gap-1" onPress={goCreateNote}>
                         <Text className="text-sm" style={{ color: TEXT_MUTED }}>
                           Заметок: {notes.length}
                         </Text>
-                      </View>
-
-                      <Pressable onPress={() => setNoteComposerOpen(true)}>
                         <PlusIcon width={16} height={16} color={PURPLE} />
                       </Pressable>
                     </View>
@@ -585,7 +582,7 @@ export default function BookScreen() {
           </Text>
 
           {notes.length !== 0 && (
-            <Pressable onPress={() => setNoteComposerOpen((v) => !v)} className="flex-row items-center gap-2">
+            <Pressable onPress={goCreateNote} className="flex-row items-center gap-2">
               <Text className="text-sm font-semibold" style={{ color: "#6B677A" }}>
                 Добавить
               </Text>
@@ -596,52 +593,9 @@ export default function BookScreen() {
           )}
         </View>
 
-        {noteComposerOpen && (
-          <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
-            <Text className="text-sm font-semibold" style={{ color: "#111827" }}>
-              Новая заметка
-            </Text>
-
-            <TextInput
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder="Текст заметки..."
-              placeholderTextColor={TEXT_MUTED}
-              multiline
-              className="mt-3 min-h-[96px] rounded-2xl border px-3 py-3 text-base"
-              style={{ borderColor: PURPLE_SOFT, color: "#111827", backgroundColor: "#FFFFFF" }}
-            />
-
-            <View className="mt-3 flex-row justify-end gap-2">
-              <Pressable
-                className="rounded-xl px-4 py-2"
-                style={{ backgroundColor: PURPLE_SOFT }}
-                onPress={() => {
-                  setNoteComposerOpen(false);
-                  setNoteText("");
-                }}
-              >
-                <Text className="text-sm font-semibold" style={{ color: PURPLE }}>
-                  Отмена
-                </Text>
-              </Pressable>
-
-              <Pressable
-                className="rounded-xl px-4 py-2"
-                style={{ backgroundColor: PURPLE }}
-                onPress={saveNote}
-              >
-                <Text className="text-sm font-semibold" style={{ color: "#FFFFFF" }}>
-                  Сохранить
-                </Text>
-              </Pressable>
-            </View>
-          </Card>
-        )}
-
         {notes.length === 0 ? (
           <View className="flex mb-6">
-            <Pressable className="flex-row items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4" onPress={() => setNoteComposerOpen((v) => !v)}>
+            <Pressable className="flex-row items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4" onPress={goCreateNote}>
               <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
                 Добавить
               </Text>
@@ -653,7 +607,7 @@ export default function BookScreen() {
         ) : (
           <Card className="rounded-2xl bg-white px-4 py-4">
             {notes.map((n, idx) => (
-              <View key={`${n.id_note}-${idx}`} className="py-3">
+              <Pressable key={`${n.id_note}-${idx}`} onPress={() => goEditNote(n.id_note)} className="py-3">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm font-semibold" style={{ color: "#111827" }}>
                     Заметка
@@ -668,7 +622,7 @@ export default function BookScreen() {
                 </Text>
 
                 {idx !== notes.length - 1 && <View className="mt-4 h-px" style={{ backgroundColor: PURPLE_SOFT }} />}
-              </View>
+              </Pressable>
             ))}
           </Card>
         )}

@@ -1,6 +1,5 @@
-// app/(modals)/book-create.tsx
 import React, { useMemo, useState } from "react";
-import {Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View} from "react-native";
+import {Image, Pressable, TextInput, View} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -13,7 +12,6 @@ import { Text } from "@/components/ui/text";
 import BackIcon from "@/assets/icons/back.svg";
 import CheckIcon from "@/assets/icons/check.svg";
 import CameraIcon from "@/assets/icons/camera.svg";
-import SearchIcon from "@/assets/icons/search.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 
 import { useBooksRepository } from "@/src/features/books/books.repository";
