@@ -58,7 +58,7 @@ function CircleProgress({
           <Circle cx={size / 2} cy={size / 2} r={r} stroke="#16A34A" strokeWidth={strokeWidth} fill="none" />
         </Svg>
         <View className="absolute items-center justify-center">
-          <CheckIcon width={24} height={24} />
+          <CheckIcon width={24} height={24} color="#16A34A" />
         </View>
       </View>
     );

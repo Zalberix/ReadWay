@@ -48,3 +48,5 @@ app-example
 /assets/db.sqlite-shm
 /assets/db.sqlite-wal
 package-lock.json
+
+/ReadWay/

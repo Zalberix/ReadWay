@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { useSQLiteContext, type SQLiteDatabase } from "expo-sqlite";
 import { all, get, run } from "@/src/db/utils";
+import { useSQLiteContext } from "expo-sqlite";
+import { useMemo } from "react";
 
 export type BookRow = {
   id_book: number;
@@ -8,6 +8,7 @@ export type BookRow = {
   name: string;
   description: string | null;
   ISBN: string | null;
+  status_read?: number | null;
   page_count: number;
   publisher_name: string | null;
   year_of_publication: number | null;
@@ -152,6 +153,7 @@ export function useBooksRepository() {
           name: patch.name,
           description: patch.description,
           ISBN: patch.ISBN,
+          status_read: (patch as any).status_read,
           page_count: patch.page_count,
           publisher_name: patch.publisher_name,
           year_of_publication: patch.year_of_publication,

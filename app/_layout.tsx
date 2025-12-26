@@ -62,6 +62,10 @@ export default function RootLayout() {
                 options={{ presentation: "modal", headerShown: false }}
               />
               <Stack.Screen
+                name="(modal)/questions"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
                 name="(page)/book"
                 options={{ headerShown: false }}
               />

@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import "../../global.css";
 
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+import CheckIcon from "@/assets/icons/check.svg";
 import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
 import FireIcon from "@/assets/icons/fire.svg";
 import PencilIcon from "@/assets/icons/pencil.svg";
@@ -51,25 +52,60 @@ function BookThumb({ uri, size = 56 }: { uri?: string | null; size?: number }) {
 }
 
 function CircleProgress({
-                          value,
+                          percent,
                           size = 56,
                           strokeWidth = 6,
-                          centerText,
+                          status = "normal",
                         }: {
-  value: number; // 0..1
+  percent: number; // 0..100
   size?: number;
   strokeWidth?: number;
-  centerText?: string;
+  status?: "normal" | "completed" | "failed";
 }) {
   const r = (size - strokeWidth) / 2;
   const c = 2 * Math.PI * r;
-  const v = clamp01(value);
+  const v = Math.max(0, Math.min(100, percent)) / 100;
   const dash = c * (1 - v);
+
+  if (status === "completed") {
+    return (
+      <View className="items-center justify-center">
+        <Svg width={size} height={size}>
+          <Circle cx={size / 2} cy={size / 2} r={r} stroke="#16A34A" strokeWidth={strokeWidth} fill="none" />
+        </Svg>
+        <View className="absolute items-center justify-center">
+          <CheckIcon width={24} height={24} color="#16A34A" />
+        </View>
+      </View>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <View className="items-center justify-center">
+        <Svg width={size} height={size}>
+          <Circle cx={size / 2} cy={size / 2} r={r} stroke="#DC2626" strokeWidth={strokeWidth} fill="none" />
+        </Svg>
+        <View className="absolute items-center justify-center">
+          <Text className="text-2xl font-bold" style={{ color: "#DC2626" }}>
+            ✕
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="items-center justify-center">
       <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke={PURPLE_SOFT} strokeWidth={strokeWidth} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={PURPLE_SOFT}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -88,7 +124,7 @@ function CircleProgress({
 
       <View className="absolute items-center justify-center">
         <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
-          {centerText ?? `${Math.round(v * 100)}%`}
+          {Math.round(v * 100)}%
         </Text>
       </View>
     </View>
@@ -155,8 +191,8 @@ export default function HomeScreen() {
     setStats(st);
 
     try {
-      const active = await goalsRepo.listActive();
-      const g = active?.[0] ?? null;
+      const [active, hist] = await Promise.all([goalsRepo.listActive(), goalsRepo.listHistory()]);
+      const g = active?.[0] ?? hist?.[0] ?? null;
       setLastActiveGoal(g);
       if (g) {
         const p = await goalsRepo.getProgress(g.id);
@@ -205,6 +241,19 @@ export default function HomeScreen() {
     ? lastActiveGoal.type === "pages"
       ? `${lastActiveProgress ? lastActiveProgress.done : 0} / ${lastActiveGoal.target} стр.`
       : `${lastActiveProgress ? Math.round((lastActiveProgress.done / 3600) * 10) / 10 : 0} / ${lastActiveGoal.target} ч`
+    : null;
+
+  const displayedGoal = lastActiveGoal;
+  const now = new Date();
+  const isCompleted = !!displayedGoal?.completed_at;
+  const isExpired = !!displayedGoal && !displayedGoal.completed_at && new Date(String(displayedGoal.end_at)) < now;
+  const displayStatus: "normal" | "completed" | "failed" = isCompleted ? "completed" : isExpired ? "failed" : "normal";
+  const displayPercent = lastActiveProgress ? Math.round((lastActiveProgress.done / Math.max(1, lastActiveProgress.target)) * 100) : Math.round(goalPct * 100);
+  const displaySubtitle = displayedGoal ? `${displayedGoal.start_at} — ${displayedGoal.end_at}` : undefined;
+  const displayTitle = displayedGoal
+    ? displayedGoal.type === "pages"
+      ? `${lastActiveProgress ? lastActiveProgress.done : 0} / ${displayedGoal.target} стр.`
+      : `${lastActiveProgress ? Math.round((lastActiveProgress.done / 3600) * 10) / 10 : 0} / ${displayedGoal.target} ч`
     : null;
 
   const hasAnyReading = !!lastRead;
@@ -318,24 +367,18 @@ export default function HomeScreen() {
 
           {/* 2) Цель */}
           <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
-            <Pressable
-              className="flex-row items-center gap-4"
-              onPress={() => {
-                if (lastActiveGoal) router.push({ pathname: "/goal-edit", params: { id: String(lastActiveGoal.id), returnTo: "/" } });
-                else goToGoal();
-              }}
-            >
-              <CircleProgress value={activePct ?? goalPct} centerText={activeCenterText ?? `${Math.round(goalPct * 100)}%`} />
+            <Pressable className="flex-row items-center gap-4" onPress={() => goToGoal()}>
+              <CircleProgress percent={displayPercent} status={displayStatus} />
 
               <View className="flex-1">
-                {lastActiveGoal ? (
+                {displayedGoal ? (
                   <>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
-                        {lastActiveGoal.type === "pages" ? "Цель (страницы)" : "Цель (время)"}
+                        {displayedGoal.type === "pages" ? "Цель (страницы)" : "Цель (время)"}
                       </Text>
                       <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
-                        {lastActiveGoal.type === "pages" ? `${lastActiveGoal.target} стр` : `${lastActiveGoal.target} ч`}
+                        {displayedGoal.type === "pages" ? `${displayedGoal.target} стр` : `${displayedGoal.target} ч`}
                       </Text>
                     </View>
 
@@ -344,7 +387,7 @@ export default function HomeScreen() {
                         Прогресс
                       </Text>
                       <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
-                        {activeLabelMain}
+                        {displayTitle}
                       </Text>
                     </View>
                   </>

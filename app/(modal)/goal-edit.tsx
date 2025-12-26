@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/card";
@@ -108,7 +108,8 @@ export default function GoalEditScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{backgroundColor: BG}} edges={["left", "right", "bottom"]}>
-      <View className="flex-row items-center justify-between px-4 py-3">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <View className="flex-row items-center justify-between px-4 py-3">
         <Pressable onPress={goBack} className="h-10 w-10 items-center justify-center rounded-full">
           <BackIcon width={24} height={24} color="#374151" />
         </Pressable>
@@ -120,9 +121,10 @@ export default function GoalEditScreen() {
         <Pressable onPress={onSave} disabled={!canSave} className="h-10 w-10 items-center justify-center rounded-full" style={{opacity: canSave ? 1 : 0.4}}>
           <CheckIcon width={24} height={24} />
         </Pressable>
-      </View>
+        </View>
 
-      <View className="flex-1 px-4 pb-28">
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }} className="flex-1" contentContainerClassName="px-4 pb-28">
+          <View className="flex-1 px-4 pb-28">
         <SectionTitle title="Тип цели" />
         <Card className="rounded-2xl bg-white px-4 py-4 mb-4">
           <View className="flex-row gap-2">
@@ -166,7 +168,9 @@ export default function GoalEditScreen() {
             </Pressable>
           </View>
         </Card>
-      </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

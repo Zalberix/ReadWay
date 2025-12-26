@@ -1,24 +1,24 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, Pressable, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { WheelNumberPicker } from "@/components/WheelNumberPicker";
-import { Platform } from "react-native";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { Platform } from "react-native";
 
 
 
 import BackIcon from "@/assets/icons/back.svg";
 import CheckIcon from "@/assets/icons/check.svg";
 
+import { useBooksRepository } from "@/src/features/books/books.repository";
 import { useSessionsRepository } from "@/src/features/sessions/sessions.repository";
 
 const BG = "#F4F0FF";
@@ -128,6 +128,7 @@ function CardRow({
 
 export default function SessionCreateScreen() {
   const sessionsRepo = useSessionsRepository();
+  const booksRepo = useBooksRepository();
 
   const params = useLocalSearchParams<{
     id_book?: string;
@@ -180,8 +181,34 @@ export default function SessionCreateScreen() {
       created_at: toSQLiteDateTimeFromDate(sessionDateTime),
     });
 
+    // Если прочитаны все страницы — помечаем книгу как прочитанную и предлагаем пройти вопросы
+    try {
+      if (maxPages > 0 && page >= maxPages) {
+        try {
+          await booksRepo.update(bookId, { status_read: 1 } as any);
+        } catch {
+          // ignore
+        }
+
+        // get book title to pass to questions
+        let bookTitle = "";
+        try {
+          const b = await booksRepo.getById(bookId);
+          bookTitle = b?.name ?? "";
+        } catch {}
+
+        Alert.alert("Поздравляем!", "Книга прочитана. Хотите закрепить прочитанное 5-ю вопросами?", [
+          { text: "Нет", style: "cancel", onPress: () => router.back() },
+          { text: "Да", onPress: () => router.push({ pathname: "/questions", params: { id_book: String(bookId), title: bookTitle } }) },
+        ]);
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+
     router.back();
-  }, [bookId, durationSec, page, sessionDateTime, sessionsRepo]);
+  }, [bookId, durationSec, page, sessionDateTime, sessionsRepo, booksRepo, maxPages]);
 
 
   return (
