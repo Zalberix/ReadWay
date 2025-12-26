@@ -223,8 +223,8 @@ export default function SessionCreateScreen() {
 
         // ensure any open sheet is closed before navigating away
         closeSheet();
-        router.replace({ pathname: "/book", params: { id_book: String(bookId) } });
-  }, [bookId, durationSec, page, sessionDateTime, sessionsRepo, booksRepo, maxPages]);
+        router.dismissTo({ pathname: "/book", params: { id_book: String(bookId) } });
+  }, [bookId, sessionsRepo, durationSec, page, sessionDateTime, closeSheet, maxPages, booksRepo]);
 
 
   return (
