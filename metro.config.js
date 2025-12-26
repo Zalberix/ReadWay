@@ -10,7 +10,11 @@ config.transformer = {
 
 config.resolver = {
     ...config.resolver,
-    assetExts: config.resolver.assetExts.filter((ext) => ext !== "svg"),
+    assetExts: (() => {
+        const exts = config.resolver.assetExts.filter((ext) => ext !== "svg");
+        if (!exts.includes('wasm')) exts.push('wasm');
+        return exts;
+    })(),
     sourceExts: [...config.resolver.sourceExts, "svg"],
 };
 

@@ -47,3 +47,4 @@ app-example
 /assets/db.sqlite
 /assets/db.sqlite-shm
 /assets/db.sqlite-wal
+package-lock.json

@@ -1,27 +1,28 @@
 // app/(tabs)/index.tsx
-import React, { useCallback, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
-import { router, useFocusEffect } from "expo-router";
 
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import "../../global.css";
 
-import PlusIcon from "@/assets/icons/plus.svg";
-import StreakFireIcon from "@/assets/icons/streak-fire.svg";
-import FireIcon from "@/assets/icons/fire.svg";
+import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
+import FireIcon from "@/assets/icons/fire.svg";
 import PencilIcon from "@/assets/icons/pencil.svg";
 import PlayIcon from "@/assets/icons/play.svg";
-import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+import PlusIcon from "@/assets/icons/plus.svg";
+import StreakFireIcon from "@/assets/icons/streak-fire.svg";
 
+import { useGoalsRepository, type GoalRow } from "@/src/features/goals/goals.repository";
 import {
-  useHomeRepository,
-  type HomeLastReadBook,
-  type HomeRecentBook,
-  type HomeReadingStats,
+    useHomeRepository,
+    type HomeLastReadBook,
+    type HomeReadingStats,
+    type HomeRecentBook,
 } from "@/src/features/home/home.repository";
 
 const BG = "#F4F0FF";
@@ -122,6 +123,7 @@ function DayDot({ label, active }: { label: string; active: boolean }) {
 
 export default function HomeScreen() {
   const homeRepo = useHomeRepository();
+  const goalsRepo = useGoalsRepository();
 
   const [booksCount, setBooksCount] = useState(0);
   const [lastRead, setLastRead] = useState<HomeLastReadBook | null>(null);
@@ -133,6 +135,9 @@ export default function HomeScreen() {
     weekActive: [false, false, false, false, false, false, false],
     maxStreak: 0,
   });
+
+  const [lastActiveGoal, setLastActiveGoal] = useState<GoalRow | null>(null);
+  const [lastActiveProgress, setLastActiveProgress] = useState<{ done: number; target: number } | null>(null);
 
   const load = useCallback(async () => {
     const [cnt, last, recent, goal, st] = await Promise.all([
@@ -148,7 +153,20 @@ export default function HomeScreen() {
     setRecentBooks(recent);
     setGoalPages(goal);
     setStats(st);
-  }, [homeRepo]);
+
+    try {
+      const active = await goalsRepo.listActive();
+      const g = active?.[0] ?? null;
+      setLastActiveGoal(g);
+      if (g) {
+        const p = await goalsRepo.getProgress(g.id);
+        setLastActiveProgress(p);
+      } else setLastActiveProgress(null);
+    } catch (e) {
+      setLastActiveGoal(null);
+      setLastActiveProgress(null);
+    }
+  }, [homeRepo, goalsRepo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -180,6 +198,14 @@ export default function HomeScreen() {
 
   const goalConfigured = goalPages !== null && goalPages > 0;
   const goalPct = goalConfigured ? clamp01(stats.todayPages / goalPages!) : 0;
+
+  const activePct = lastActiveProgress ? clamp01(lastActiveProgress.done / Math.max(1, lastActiveProgress.target)) : null;
+  const activeCenterText = activePct !== null ? `${Math.round(activePct * 100)}%` : undefined;
+  const activeLabelMain = lastActiveGoal
+    ? lastActiveGoal.type === "pages"
+      ? `${lastActiveProgress ? lastActiveProgress.done : 0} / ${lastActiveGoal.target} стр.`
+      : `${lastActiveProgress ? Math.round((lastActiveProgress.done / 3600) * 10) / 10 : 0} / ${lastActiveGoal.target} ч`
+    : null;
 
   const hasAnyReading = !!lastRead;
 
@@ -292,11 +318,37 @@ export default function HomeScreen() {
 
           {/* 2) Цель */}
           <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
-            <Pressable className="flex-row items-center gap-4" onPress={goToGoal}>
-              <CircleProgress value={goalPct} centerText={`${Math.round(goalPct * 100)}%`} />
+            <Pressable
+              className="flex-row items-center gap-4"
+              onPress={() => {
+                if (lastActiveGoal) router.push({ pathname: "/goal-edit", params: { id: String(lastActiveGoal.id), returnTo: "/" } });
+                else goToGoal();
+              }}
+            >
+              <CircleProgress value={activePct ?? goalPct} centerText={activeCenterText ?? `${Math.round(goalPct * 100)}%`} />
 
               <View className="flex-1">
-                {!goalConfigured ? (
+                {lastActiveGoal ? (
+                  <>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+                        {lastActiveGoal.type === "pages" ? "Цель (страницы)" : "Цель (время)"}
+                      </Text>
+                      <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+                        {lastActiveGoal.type === "pages" ? `${lastActiveGoal.target} стр` : `${lastActiveGoal.target} ч`}
+                      </Text>
+                    </View>
+
+                    <View className="mt-2 flex-row items-center justify-between">
+                      <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+                        Прогресс
+                      </Text>
+                      <Text className="text-xl font-semibold" style={{ color: "#111827" }}>
+                        {activeLabelMain}
+                      </Text>
+                    </View>
+                  </>
+                ) : !goalConfigured ? (
                   <>
                     <Text className="text-xl" style={{ color: TEXT_MUTED }}>
                       Цель не выбрана

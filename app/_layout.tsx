@@ -1,15 +1,15 @@
-import 'react-native-reanimated';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import 'react-native-reanimated';
 import '../global.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import {PortalHost} from "@rn-primitives/portal";
-import {SafeAreaProvider} from "react-native-safe-area-context";
-import {SQLiteProvider} from "expo-sqlite";
-import {runMigrationsIfNeed} from "@/src/db/migrations";
-import {GestureHandlerRootView} from "react-native-gesture-handler";
+import { runMigrationsIfNeed } from "@/src/db/migrations";
+import { PortalHost } from "@rn-primitives/portal";
+import { SQLiteProvider } from "expo-sqlite";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -52,6 +52,14 @@ export default function RootLayout() {
               <Stack.Screen
                 name="(modal)/book-sessions"
                 options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/goal-create"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="(modal)/goal-edit"
+                options={{ presentation: "modal", headerShown: false }}
               />
               <Stack.Screen
                 name="(page)/book"

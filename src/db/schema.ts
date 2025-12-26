@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const schemaSql = `
 PRAGMA journal_mode = WAL;
@@ -47,6 +47,16 @@ CREATE TABLE IF NOT EXISTS sessions (
   current_page INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (id_book) REFERENCES books(id_book) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL, -- 'pages' or 'time'
+  target INTEGER NOT NULL, -- pages count or hours count (for 'time')
+  start_at TEXT NOT NULL, -- inclusive start datetime (YYYY-MM-DD HH:MM:SS or date)
+  end_at TEXT NOT NULL, -- inclusive end datetime
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  completed_at TEXT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_books_created_at ON books(created_at);
