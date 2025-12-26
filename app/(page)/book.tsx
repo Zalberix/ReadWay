@@ -584,14 +584,16 @@ export default function BookScreen() {
             Заметки
           </Text>
 
-          <Pressable onPress={() => setNoteComposerOpen((v) => !v)} className="flex-row items-center gap-2">
-            <Text className="text-sm font-semibold" style={{ color: "#6B677A" }}>
-              Добавить
-            </Text>
-            <Text className="text-lg font-semibold" style={{ color: PURPLE }}>
-              <PlusIcon width={18} height={18} color={PURPLE}/>
-            </Text>
-          </Pressable>
+          {notes.length !== 0 && (
+            <Pressable onPress={() => setNoteComposerOpen((v) => !v)} className="flex-row items-center gap-2">
+              <Text className="text-sm font-semibold" style={{ color: "#6B677A" }}>
+                Добавить
+              </Text>
+              <Text className="text-lg font-semibold" style={{ color: PURPLE }}>
+                <PlusIcon width={18} height={18} color={PURPLE}/>
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {noteComposerOpen && (
@@ -638,10 +640,15 @@ export default function BookScreen() {
         )}
 
         {notes.length === 0 ? (
-          <View className="items-center justify-center py-8">
-            <Text className="text-base" style={{ color: TEXT_MUTED }}>
-              Заметок пока нет
-            </Text>
+          <View className="flex mb-6">
+            <Pressable className="flex-row items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4" onPress={() => setNoteComposerOpen((v) => !v)}>
+              <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+                Добавить
+              </Text>
+              <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+                <PlusIcon width={18} height={18} color={PURPLE}/>
+              </Text>
+            </Pressable>
           </View>
         ) : (
           <Card className="rounded-2xl bg-white px-4 py-4">
