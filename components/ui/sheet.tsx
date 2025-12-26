@@ -1,7 +1,7 @@
+import { Text } from "@/components/ui/text";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { View, type ViewProps } from "react-native";
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { Text } from "@/components/ui/text";
 
 type SheetCtx = {
   open: boolean;
@@ -54,6 +54,8 @@ export function SheetContent({
       index={ctx.open ? 0 : -1}
       snapPoints={points}
       enablePanDownToClose
+      // disable content panning so inner wheels/pickers receive gestures
+      enableContentPanningGesture={false}
       onChange={(idx) => {
         // idx === -1 -> закрыт (в т.ч. тапом по фону)
         if (idx === -1) ctx.onOpenChange(false);

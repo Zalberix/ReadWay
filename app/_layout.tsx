@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SessionProvider } from "@/src/contexts/session";
 import { runMigrationsIfNeed } from "@/src/db/migrations";
 import { PortalHost } from "@rn-primitives/portal";
 import { SQLiteProvider } from "expo-sqlite";
@@ -23,6 +24,7 @@ export default function RootLayout() {
       <SQLiteProvider databaseName="app.db" onInit={runMigrationsIfNeed}>
         <SafeAreaProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <SessionProvider>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
@@ -69,7 +71,12 @@ export default function RootLayout() {
                 name="(page)/book"
                 options={{ headerShown: false }}
               />
+              <Stack.Screen
+                name="session"
+                options={{ headerShown: false }}
+              />
             </Stack>
+            </SessionProvider>
             <StatusBar style="auto" />
             <PortalHost />
           </ThemeProvider>

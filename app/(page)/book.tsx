@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Image, Pressable, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
@@ -10,19 +10,22 @@ import { Text } from "@/components/ui/text";
 import BackIcon from "@/assets/icons/back.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
+import PauseIcon from "@/assets/icons/pause.svg";
 import PencilIcon from "@/assets/icons/pencil.svg";
-import PlusIcon from "@/assets/icons/plus.svg";
 import PlayIcon from "@/assets/icons/play.svg";
+import PlusIcon from "@/assets/icons/plus.svg";
 import TrashIcon from "@/assets/icons/trash.svg";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useSession } from "@/src/contexts/session";
+import { useBooksRepository } from "@/src/features/books/books.repository";
 import { useNotesRepository, type NoteRow } from "@/src/features/notes/notes.repository";
+import { useQuizzesRepository, type QuizResultRow } from "@/src/features/quizzes/quizzes.repository";
 import { useSessionsRepository, type SessionRow } from "@/src/features/sessions/sessions.repository";
-import {KeyboardAwareScrollView} from "react-native-keyboard-aware-scroll-view";
-import {useFocusEffect} from "@react-navigation/native";
-import {Button} from "@/components/ui/button";
-import {useBooksRepository} from "@/src/features/books/books.repository";
-import {Sheet, SheetContent} from "@/components/ui/sheet";
-import {Input} from "@/components/ui/input";
+import { useFocusEffect } from "@react-navigation/native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -61,6 +64,15 @@ function formatMinutes(seconds: number) {
   if (m === 1) return "1 минута";
   if (m >= 2 && m <= 4) return `${m} минуты`;
   return `${m} минут`;
+}
+
+function formatHMS(totalSec: number) {
+  const s = Math.max(0, Math.floor(totalSec));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
 }
 
 function BookThumb({ uri, size = 56 }: { uri?: string | null; size?: number }) {
@@ -227,6 +239,7 @@ export default function BookScreen() {
   const db = useSQLiteContext();
   const notesRepo = useNotesRepository();
   const sessionsRepo = useSessionsRepository();
+  const quizzesRepo = useQuizzesRepository();
 
   const params = useLocalSearchParams<{ id_book?: string }>();
   const bookId = useMemo(() => {
@@ -237,6 +250,7 @@ export default function BookScreen() {
   const [book, setBook] = useState<BookRow | null>(null);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [lastQuiz, setLastQuiz] = useState<QuizResultRow | null>(null);
   const lastSession = sessions[0] ?? null;
   const prevSession = sessions[1] ?? null;
 
@@ -274,6 +288,12 @@ export default function BookScreen() {
     setBook(b ?? null);
     setNotes(n);
     setSessions(s);
+    try {
+      const q = await quizzesRepo.listByBook(bookId, 1);
+      setLastQuiz(q[0] ?? null);
+    } catch (e) {
+      setLastQuiz(null);
+    }
 
     const pageFromLast = s[0]?.current_page ?? 0;
     setCurrentPage(pageFromLast);
@@ -287,6 +307,14 @@ export default function BookScreen() {
 
   const booksRepo = useBooksRepository();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const session = useSession();
+
+  // session modal (opened when Play pressed)
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [modalIsRunning, setModalIsRunning] = useState(false);
+  const modalStartedAtRef = useRef<number | null>(null);
+  const [modalElapsedSec, setModalElapsedSec] = useState(0);
+  const modalTickRef = useRef<any>(null);
 
   const onDeleteBook = useCallback(async () => {
     if (!bookId) return;
@@ -310,6 +338,30 @@ export default function BookScreen() {
       tickRef.current = null;
     };
   }, [isRunning]);
+
+  // modal timer loop
+  useEffect(() => {
+    if (!sessionModalOpen) {
+      if (modalTickRef.current) {
+        clearInterval(modalTickRef.current);
+        modalTickRef.current = null;
+      }
+      return;
+    }
+
+    if (!modalIsRunning) return;
+
+    modalTickRef.current = setInterval(() => {
+      const start = modalStartedAtRef.current;
+      if (!start) return;
+      setModalElapsedSec(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    }, 500);
+
+    return () => {
+      if (modalTickRef.current) clearInterval(modalTickRef.current);
+      modalTickRef.current = null;
+    };
+  }, [sessionModalOpen, modalIsRunning]);
 
   const startSession = useCallback(() => {
     startedAtRef.current = Date.now();
@@ -361,6 +413,31 @@ export default function BookScreen() {
       },
     });
   }, [bookId, currentPage, totalPages]);
+
+  const onFinishFromModal = useCallback(() => {
+    const duration = modalElapsedSec;
+    const startDate = new Date(Date.now() - duration * 1000);
+
+    // stop modal timer and close
+    setSessionModalOpen(false);
+    setModalIsRunning(false);
+    modalStartedAtRef.current = null;
+    if (modalTickRef.current) {
+      clearInterval(modalTickRef.current);
+      modalTickRef.current = null;
+    }
+
+    router.push({
+      pathname: "/session-create",
+      params: {
+        id_book: String(bookId),
+        page: String(currentPage),
+        max: String(totalPages),
+        durationSec: String(duration),
+        sessionDateISO: startDate.toISOString(),
+      },
+    });
+  }, [bookId, currentPage, totalPages, modalElapsedSec]);
 
   const goAllSessions = useCallback(() => {
     router.push({
@@ -437,9 +514,16 @@ export default function BookScreen() {
                   <Pressable
                     className="flex h-20 w-20 items-center justify-center rounded-full"
                     style={{ backgroundColor: PURPLE_SOFT }}
-                    onPress={isRunning ? stopSession : startSession}
+                    onPress={() => {
+                      if (bookId) session.start(bookId, currentPage);
+                      router.push({ pathname: '/session', params: { id_book: String(bookId), page: String(currentPage) } });
+                    }}
                   >
-                    <PlayIcon color={PURPLE} />
+                    {session.isRunning && session.bookId === bookId ? (
+                      <PauseIcon width={28} height={28} color={PURPLE} />
+                    ) : (
+                      <PlayIcon color={PURPLE} />
+                    )}
                   </Pressable>
                 </View>
               </View>
@@ -461,10 +545,18 @@ export default function BookScreen() {
                 }
               />
 
-              {isRunning && (
+              {session.isRunning && session.bookId === bookId && (
                 <View className="mt-3 items-center justify-center">
                   <Text className="text-sm" style={{ color: TEXT_MUTED }}>
-                    Сеанс идёт: {formatMinutes(elapsedSec)}
+                    Сеанс идёт: {formatMinutes(session.seconds)}
+                  </Text>
+                </View>
+              )}
+
+              {lastQuiz && (
+                <View className="mt-3 items-center justify-center">
+                  <Text className="text-sm" style={{ color: TEXT_MUTED }}>
+                    Опрос: {lastQuiz.score} / {lastQuiz.total}
                   </Text>
                 </View>
               )}
@@ -627,6 +719,8 @@ export default function BookScreen() {
           </Card>
         )}
       </KeyboardAwareScrollView>
+      {/* Session is now a separate page at /session */}
+
       <DeleteBookSheet
         open={deleteOpen}
         onOpenChange={(v) => (v ? setDeleteOpen(true) : setDeleteOpen(false))}

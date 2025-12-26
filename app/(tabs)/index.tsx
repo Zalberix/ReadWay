@@ -13,17 +13,19 @@ import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
 import CheckIcon from "@/assets/icons/check.svg";
 import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
 import FireIcon from "@/assets/icons/fire.svg";
+import PauseIcon from "@/assets/icons/pause.svg";
 import PencilIcon from "@/assets/icons/pencil.svg";
 import PlayIcon from "@/assets/icons/play.svg";
 import PlusIcon from "@/assets/icons/plus.svg";
 import StreakFireIcon from "@/assets/icons/streak-fire.svg";
+import { useSession } from "@/src/contexts/session";
 
 import { useGoalsRepository, type GoalRow } from "@/src/features/goals/goals.repository";
 import {
-    useHomeRepository,
-    type HomeLastReadBook,
-    type HomeReadingStats,
-    type HomeRecentBook,
+  useHomeRepository,
+  type HomeLastReadBook,
+  type HomeReadingStats,
+  type HomeRecentBook,
 } from "@/src/features/home/home.repository";
 
 const BG = "#F4F0FF";
@@ -257,9 +259,10 @@ export default function HomeScreen() {
     : null;
 
   const hasAnyReading = !!lastRead;
+  const session = useSession();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "top", "bottom"]} className="flex-1">
+    <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "top"]} className="flex-1">
       <View className="items-center justify-center px-4 py-4" style={{ backgroundColor: BG }}>
         <Text className="text-4xl font-semibold" style={{ color: "#111827" }}>
           ReadWay
@@ -317,11 +320,18 @@ export default function HomeScreen() {
                 </View>
 
                 <Pressable
-                  onPress={() => openBook(lastRead.id_book)}
-                  className="h-16 w-16 items-center justify-center rounded-full"
-                  style={{ backgroundColor: "rgba(0,0,0,0.06)" }}
+                  onPress={() => {
+                    try { session.start(lastRead.id_book, lastRead.last_page ?? 0); } catch {}
+                    router.push({ pathname: '/session', params: { id_book: String(lastRead.id_book), page: String(lastRead.last_page ?? 0) } });
+                  }}
+                  className="flex h-20 w-20 items-center justify-center rounded-full"
+                  style={{ backgroundColor: PURPLE_SOFT }}
                 >
-                  <PlayIcon width={26} height={26} color={PURPLE} />
+                  {session.isRunning && session.bookId === lastRead.id_book ? (
+                    <PauseIcon width={28} height={28} color={PURPLE} />
+                  ) : (
+                    <PlayIcon color={PURPLE} />
+                  )}
                 </Pressable>
               </View>
 

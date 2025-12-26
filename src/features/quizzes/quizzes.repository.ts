@@ -1,4 +1,4 @@
-import { run } from "@/src/db/utils";
+import { all, run } from "@/src/db/utils";
 import { useSQLiteContext } from "expo-sqlite";
 import { useMemo } from "react";
 
@@ -36,6 +36,20 @@ export function useQuizzesRepository() {
     })();
 
     return {
+      async listByBook(id_book: number, limit?: number): Promise<QuizResultRow[]> {
+        const lim = typeof limit === 'number' && limit > 0 ? limit : 999999;
+        const rows = await all<QuizResultRow>(
+          db,
+          `SELECT id, id_book, title, score, total, answers_json, created_at
+             FROM quiz_results
+            WHERE id_book = ?
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT ?`,
+          [id_book, lim],
+        );
+        return rows;
+      },
+
       async saveResult(input: { id_book: number; title: string; score: number; total: number; answers: any[] }): Promise<number> {
         const res: any = await run(
           db,

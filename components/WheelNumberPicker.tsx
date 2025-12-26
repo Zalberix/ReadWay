@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Platform, View } from "react-native";
-import { Text } from "@/components/ui/text";
+import { Animated, FlatList, View } from "react-native";
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5; // нечётное: 5/7/9

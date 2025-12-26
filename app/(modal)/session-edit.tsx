@@ -1,14 +1,14 @@
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/components/ui/card";
-import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Text } from "@/components/ui/text";
 
 import BackIcon from "@/assets/icons/back.svg";
 import CheckIcon from "@/assets/icons/check.svg";
@@ -154,6 +154,8 @@ export default function SessionEditScreen() {
       created_at: toSQLiteDateTimeFromDate(sessionDateTime),
     });
 
+    // close any open sheet before navigating back
+    closeSheet();
     router.back();
   }, [durationSec, page, sessionDateTime, sessionId, sessionsRepo]);
 

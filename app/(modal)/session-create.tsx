@@ -134,6 +134,8 @@ export default function SessionCreateScreen() {
     id_book?: string;
     page?: string;
     max?: string;
+    durationSec?: string; // prefill duration in seconds
+    sessionDateISO?: string; // prefill session start datetime ISO
   }>();
 
   const bookId = useMemo(() => Number(params.id_book ?? 0), [params.id_book]);
@@ -146,13 +148,25 @@ export default function SessionCreateScreen() {
   }, [maxPages, params.page]);
 
   const init = useMemo(() => nowInputs(), []);
-  const [sessionDateTime, setSessionDateTime] = useState<Date>(() => new Date());
+  const initialSessionDate = useMemo(() => {
+    try {
+      if (params.sessionDateISO) return new Date(String(params.sessionDateISO));
+    } catch {}
+    return new Date();
+  }, [params.sessionDateISO]);
+
+  const initialDuration = useMemo(() => {
+    const v = Number(params.durationSec ?? 0);
+    return Number.isFinite(v) && v > 0 ? Math.max(0, Math.floor(v)) : 0;
+  }, [params.durationSec]);
+
+  const [sessionDateTime, setSessionDateTime] = useState<Date>(() => new Date(initialSessionDate));
 
 
   // время чтения (H/M/S)
-  const [hours, setHours] = useState(0);
-  const [mins, setMins] = useState(0);
-  const [secs, setSecs] = useState(0);
+  const [hours, setHours] = useState(() => Math.floor(initialDuration / 3600));
+  const [mins, setMins] = useState(() => Math.floor((initialDuration % 3600) / 60));
+  const [secs, setSecs] = useState(() => initialDuration % 60);
 
   const durationSec = useMemo(() => hours * 3600 + mins * 60 + secs, [hours, mins, secs]);
 
@@ -198,8 +212,8 @@ export default function SessionCreateScreen() {
         } catch {}
 
         Alert.alert("Поздравляем!", "Книга прочитана. Хотите закрепить прочитанное 5-ю вопросами?", [
-          { text: "Нет", style: "cancel", onPress: () => router.back() },
-          { text: "Да", onPress: () => router.push({ pathname: "/questions", params: { id_book: String(bookId), title: bookTitle } }) },
+          { text: "Нет", style: "cancel", onPress: () => { closeSheet(); router.replace({ pathname: "/book", params: { id_book: String(bookId) } }); } },
+            { text: "Да", onPress: () => { closeSheet(); router.push({ pathname: "/questions", params: { id_book: String(bookId), title: bookTitle } }); } },
         ]);
         return;
       }
@@ -207,7 +221,9 @@ export default function SessionCreateScreen() {
       // ignore
     }
 
-    router.back();
+        // ensure any open sheet is closed before navigating away
+        closeSheet();
+        router.replace({ pathname: "/book", params: { id_book: String(bookId) } });
   }, [bookId, durationSec, page, sessionDateTime, sessionsRepo, booksRepo, maxPages]);
 
 
@@ -418,22 +434,24 @@ export default function SessionCreateScreen() {
             </View>
 
             <View className="mt-6 items-center">
-              <DateTimePicker
-                value={sessionDateTime}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(e: DateTimePickerEvent, selected?: Date) => {
-                  if (!selected) return;
+              {openSheet === "datePicker" && (
+                <DateTimePicker
+                  value={sessionDateTime}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={(e: DateTimePickerEvent, selected?: Date) => {
+                    if (!selected) return;
 
-                  setSessionDateTime((prev) => {
-                    const next = new Date(prev);
-                    next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-                    return next;
-                  });
+                    setSessionDateTime((prev) => {
+                      const next = new Date(prev);
+                      next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+                      return next;
+                    });
 
-                  if (Platform.OS !== "ios") closeSheet();
-                }}
-              />
+                    if (Platform.OS !== "ios") closeSheet();
+                  }}
+                />
+              )}
             </View>
 
             {Platform.OS === "ios" && (
@@ -458,23 +476,25 @@ export default function SessionCreateScreen() {
             </View>
 
             <View className="mt-6 items-center">
-              <DateTimePicker
-                value={sessionDateTime}
-                mode="time"
-                is24Hour
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(e: DateTimePickerEvent, selected?: Date) => {
-                  if (!selected) return;
+              {openSheet === "timePicker" && (
+                <DateTimePicker
+                  value={sessionDateTime}
+                  mode="time"
+                  is24Hour
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={(e: DateTimePickerEvent, selected?: Date) => {
+                    if (!selected) return;
 
-                  setSessionDateTime((prev) => {
-                    const next = new Date(prev);
-                    next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-                    return next;
-                  });
+                    setSessionDateTime((prev) => {
+                      const next = new Date(prev);
+                      next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+                      return next;
+                    });
 
-                  if (Platform.OS !== "ios") closeSheet();
-                }}
-              />
+                    if (Platform.OS !== "ios") closeSheet();
+                  }}
+                />
+              )}
             </View>
 
             {Platform.OS === "ios" && (
