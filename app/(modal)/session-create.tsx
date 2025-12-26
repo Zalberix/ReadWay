@@ -101,7 +101,7 @@ function CardRow({
 }) {
   return (
     <Pressable onPress={onPress}>
-      <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+      <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
         <View className="flex-row items-center gap-4">
           <View
             className="h-12 w-12 items-center justify-center rounded-2xl"
@@ -238,7 +238,7 @@ export default function SessionCreateScreen() {
 
         {/* Sheet: Время (часы/мин/сек) */}
         <Sheet open={openSheet === "time"} onOpenChange={(v) => (v ? setOpenSheet("time") : closeSheet())}>
-          <SheetContent snapPoints={["72%"]} style={{ backgroundColor: "#FAF7F2" }}>
+          <SheetContent snapPoints={["55%"]} style={{ backgroundColor: "#FAF7F2" }}>
             <View className="items-center">
               <Text className="text-2xl font-semibold" style={{ color: "#111827" }}>
                 Сколько вы читали?

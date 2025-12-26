@@ -134,7 +134,7 @@ function BookCover({
   return (
     <View className="items-center">
       <View
-        className="bg-card relative overflow-hidden rounded-2xl shadow-sm"
+        className="bg-card relative overflow-hidden rounded-2xl"
         style={{ width: 160, height: 140 }}
       >
         {has ? (
@@ -287,7 +287,7 @@ export default function BookCreateScreen() {
           <View className="mt-4">
             <SectionTitle title="Основная информация" />
 
-            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Card className="rounded-2xl bg-white px-4 py-4">
               <View className="mb-3">
                 <FieldLabel>Заголовок</FieldLabel>
                 <Input value={title} onChangeText={setTitle} placeholder="Название книги" />
@@ -314,7 +314,7 @@ export default function BookCreateScreen() {
           <View className="mt-6">
             <SectionTitle title="Информация о публикации" />
 
-            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Card className="rounded-2xl bg-white px-4 py-4">
               <View className="mb-3">
                 <FieldLabel>Издатель</FieldLabel>
                 <Input value={publisher} onChangeText={setPublisher} placeholder="Наименование издателя" />
@@ -338,7 +338,7 @@ export default function BookCreateScreen() {
           <View className="mt-6">
             <SectionTitle title="Авторы" />
 
-            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Card className="rounded-2xl bg-white px-4 py-4">
               <View className="flex-row items-center gap-2">
                 <View className="flex-1">
                   <TextInput
@@ -386,7 +386,7 @@ export default function BookCreateScreen() {
           <View className="mt-6">
             <SectionTitle title="Описание" />
 
-            <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+            <Card className="rounded-2xl bg-white px-4 py-4">
               <TextInput
                 value={description}
                 onChangeText={setDescription}

@@ -91,7 +91,7 @@ type GoalCardProps = {
 
 function GoalCard({ percent, subtitle, title }: GoalCardProps) {
   return (
-    <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+    <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
       <View className="flex-row items-center gap-4">
         <CircleProgress percent={percent} />
 

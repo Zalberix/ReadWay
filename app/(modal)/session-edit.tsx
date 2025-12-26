@@ -71,7 +71,7 @@ function CardRow({
 }) {
   return (
     <Pressable onPress={onPress}>
-      <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+      <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
         <View className="flex-row items-center gap-4">
           <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: PURPLE_SOFT }}>
             <Text className="text-2xl" style={{ color: PURPLE }}>

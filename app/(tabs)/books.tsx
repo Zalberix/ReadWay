@@ -113,7 +113,7 @@ type BookCardProps = {
 function BookCard({ title, currentPage, totalPages, coverUrl, onPress }: BookCardProps & { onPress: () => void }) {
   return (
     <Pressable onPress={onPress}>
-      <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+      <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
         <View className="flex-row items-center gap-4">
           <BookThumb uri={coverUrl} title={title} size={64} />
           <View className="flex-1">

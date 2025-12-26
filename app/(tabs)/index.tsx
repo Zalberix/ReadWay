@@ -106,7 +106,7 @@ export default function HomeScreen() {
           contentContainerClassName="px-4 pb-28"
           showsVerticalScrollIndicator={false}
         >
-          <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
             <View className="items-center justify-center">
               <Text className="text-2xl flex justify-center font-semibold" style={{ color: "#111827" }}>
                 Добавьте свою первую книгу!
@@ -128,7 +128,7 @@ export default function HomeScreen() {
             </Pressable>
           </Card>
 
-          <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
             <Pressable
               className="flex-row items-center gap-4"
               onPress={goToGoal()}
@@ -146,7 +146,7 @@ export default function HomeScreen() {
             </Pressable>
           </Card>
 
-          <Card className="mb-6 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <Card className="mb-6 rounded-2xl bg-white px-4 py-4">
             <View className="flex-row items-center gap-3">
               <FireIcon width={24} height={24} color="#6B677A" />
               <View>

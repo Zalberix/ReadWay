@@ -238,6 +238,15 @@ export default function BookScreen() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const lastSession = sessions[0] ?? null;
+  const prevSession = sessions[1] ?? null;
+
+  const lastDelta = useMemo(() => {
+    if (!lastSession) return 0;
+    const cur = Number(lastSession.current_page ?? 0);
+    const prev = Number(prevSession?.current_page ?? 0);
+    return cur - prev;
+  }, [lastSession, prevSession]);
+  const lastDeltaLabel = lastDelta >= 1 ? ` (+${lastDelta})` : "";
 
   const [currentPage, setCurrentPage] = useState<number>(0);
 
@@ -400,7 +409,7 @@ export default function BookScreen() {
         {/* Book main card */}
         <View className="mb-4 flex-row gap-1.5">
           {/* LEFT: твоя карточка как есть */}
-          <Card className="flex-1 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <Card className="flex-1 rounded-2xl bg-white px-4 py-4">
             <View className="flex-row items-center gap-2">
               <BookThumb uri={book?.cover_path ?? null} size={64} />
 
@@ -468,7 +477,7 @@ export default function BookScreen() {
           {/* RIGHT: блок кнопок ВНЕ card */}
           <View className="gap-1.5" style={{ width: 40 }}>
 
-            <View className="rounded-2xl bg-white shadow-sm" style={{ width: 40, height: 40, padding: 0 }}>
+            <View className="rounded-2xl bg-white" style={{ width: 40, height: 40, padding: 0 }}>
               <Pressable
                 onPress={() => setDeleteOpen(true)}
                 style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
@@ -476,7 +485,7 @@ export default function BookScreen() {
                 <TrashIcon width={20} height={20} color={PURPLE} />
               </Pressable>
             </View>
-            <View className="flex-1 rounded-2xl bg-white shadow-sm" style={{ width: 40, padding: 0 }}>
+            <View className="flex-1 rounded-2xl bg-white" style={{ width: 40, padding: 0 }}>
               <Pressable
                 onPress={() =>{
                   router.push({
@@ -503,18 +512,21 @@ export default function BookScreen() {
             <ChevronRightIcon width={18} height={18} color="#6B677A" />
           </Pressable>
 
-          <Pressable className="flex-row items-center gap-2" onPress={goCreateSession}>
-            <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
-              Добавить
-            </Text>
-            <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
-              +
-            </Text>
-          </Pressable>
+          {lastSession !== null && (
+            <Pressable className="flex-row items-center gap-2" onPress={goCreateSession}>
+              <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+                Добавить
+              </Text>
+              <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+                <PlusIcon width={18} height={18} color={PURPLE}/>
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Last session card */}
-        <Card className="mb-6 rounded-2xl bg-white px-4 py-4 shadow-sm">
+        {lastSession !== null ? (
+        <Card className="mb-6 rounded-2xl bg-white px-4 py-4">
           <View className="flex-row items-center justify-between">
             <Text className="text-2xl font-semibold" style={{ color: "#111827" }}>
               Последний сеанс
@@ -546,13 +558,25 @@ export default function BookScreen() {
           <Pressable onPress={goEditLastSession} className="mt-3 flex-row items-center justify-center gap-2">
             <Text className="text-2xl font-semibold" style={{ color: TEXT_MUTED }}>
               {lastSession ? `${lastSession.current_page} / ${totalPages} стр.` : `0 / ${totalPages} стр.`}
-              {lastSession ? ` (+${lastSession.current_page})` : ""}
+              {lastSession ? lastDeltaLabel : ""}
             </Text>
 
             {/* твой PencilIcon */}
             <PencilIcon width={18} height={18} color={PURPLE} />
           </Pressable>
         </Card>
+        ) : (
+          <View className="flex mb-6">
+            <Pressable className="flex-row items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4" onPress={goCreateSession}>
+              <Text className="text-lg font-semibold" style={{ color: "#6B677A" }}>
+                Добавить
+              </Text>
+              <Text className="text-xl font-semibold" style={{ color: PURPLE }}>
+                <PlusIcon width={18} height={18} color={PURPLE}/>
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Notes */}
         <View className="mb-2 flex-row items-center justify-between">
@@ -562,16 +586,16 @@ export default function BookScreen() {
 
           <Pressable onPress={() => setNoteComposerOpen((v) => !v)} className="flex-row items-center gap-2">
             <Text className="text-sm font-semibold" style={{ color: "#6B677A" }}>
-              ДОБАВИТЬ
+              Добавить
             </Text>
             <Text className="text-lg font-semibold" style={{ color: PURPLE }}>
-              +
+              <PlusIcon width={18} height={18} color={PURPLE}/>
             </Text>
           </Pressable>
         </View>
 
         {noteComposerOpen && (
-          <Card className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <Card className="mb-4 rounded-2xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold" style={{ color: "#111827" }}>
               Новая заметка
             </Text>
@@ -620,7 +644,7 @@ export default function BookScreen() {
             </Text>
           </View>
         ) : (
-          <Card className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+          <Card className="rounded-2xl bg-white px-4 py-4">
             {notes.map((n, idx) => (
               <View key={`${n.id_note}-${idx}`} className="py-3">
                 <View className="flex-row items-center justify-between">
