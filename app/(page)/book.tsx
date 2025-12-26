@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Image, Pressable, View, InteractionManager, Keyboard, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/card";
@@ -131,10 +131,11 @@ function genCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+
 export function DeleteBookSheet({
                                   open,
                                   onConfirm,
-                                  onOpenChange
+                                  onOpenChange,
                                 }: {
   open: boolean;
   onConfirm: () => Promise<void> | void;
@@ -143,18 +144,36 @@ export function DeleteBookSheet({
   const [code, setCode] = useState(() => genCode());
   const [typed, setTyped] = useState("");
 
+  const inputRef = useRef<TextInput>(null);
+
   const canDelete = useMemo(() => typed.trim() === code, [typed, code]);
 
-  // при каждом открытии — новый код и чистим ввод
+  const handleOpenChange = (v: boolean) => {
+    if (!v) {
+      inputRef.current?.blur();
+      Keyboard.dismiss();
+    }
+    onOpenChange(v);
+  };
+
+  // при каждом открытии — новый код, чистим ввод и фокусируем поле
   useEffect(() => {
     if (!open) return;
+
     setCode(genCode());
     setTyped("");
+
+    // дождаться анимации открытия Sheet, чтобы фокус стабильно сработал
+    const task = InteractionManager.runAfterInteractions(() => {
+      inputRef.current?.focus();
+    });
+
+    return () => task.cancel?.();
   }, [open]);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent snapPoints={["55%"]} style={{ backgroundColor: "#FAF7F2" }}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent snapPoints={["78%"]} style={{ backgroundColor: "#FAF7F2" }}>
         <View className="items-center">
           <Text className="text-2xl font-semibold" style={{ color: "#111827" }}>
             Удалить книгу?
@@ -175,7 +194,10 @@ export function DeleteBookSheet({
             Для подтверждения введите число:
           </Text>
 
-          <View className="mt-2 flex-row items-center justify-between rounded-2xl px-4 py-3" style={{ backgroundColor: BG }}>
+          <View
+            className="mt-2 flex-row items-center justify-between rounded-2xl px-4 py-3"
+            style={{ backgroundColor: BG }}
+          >
             <Text className="text-xl font-bold" style={{ color: PURPLE }}>
               {code}
             </Text>
@@ -184,6 +206,8 @@ export function DeleteBookSheet({
               onPress={() => {
                 setCode(genCode());
                 setTyped("");
+                // чтобы после "Сменить" сразу снова был фокус
+                requestAnimationFrame(() => inputRef.current?.focus());
               }}
               className="rounded-full px-3 py-2"
               style={{ backgroundColor: PURPLE_SOFT }}
@@ -195,11 +219,15 @@ export function DeleteBookSheet({
           </View>
 
           <Input
+            ref={inputRef}
             value={typed}
             onChangeText={(v) => setTyped(v.replace(/[^\d]/g, "").slice(0, 6))}
             placeholder="Введите число"
             keyboardType="number-pad"
             className="mt-3"
+            // если ваш Input прокидывает эти пропсы — добавь:
+            // blurOnSubmit={false}
+            // autoCorrect={false}
           />
         </View>
 
@@ -208,7 +236,7 @@ export function DeleteBookSheet({
             variant="secondary"
             className="h-14 flex-1 rounded-2xl"
             style={{ backgroundColor: PURPLE_SOFT }}
-            onPress={() => onOpenChange(false)}
+            onPress={() => handleOpenChange(false)}
           >
             <Text className="text-base font-semibold" style={{ color: PURPLE }}>
               Отмена
@@ -221,8 +249,13 @@ export function DeleteBookSheet({
             disabled={!canDelete}
             onPress={async () => {
               if (!canDelete) return;
+
+              // закрыть клавиатуру сразу, чтобы не мешала анимации/закрытию
+              inputRef.current?.blur();
+              Keyboard.dismiss();
+
               await onConfirm();
-              onOpenChange(false);
+              handleOpenChange(false);
             }}
           >
             <Text className="text-base font-semibold" style={{ color: "#FFFFFF" }}>
@@ -234,6 +267,7 @@ export function DeleteBookSheet({
     </Sheet>
   );
 }
+
 
 export default function BookScreen() {
   const db = useSQLiteContext();
