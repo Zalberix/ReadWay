@@ -1,22 +1,22 @@
+import * as ImagePicker from "expo-image-picker";
+import { router, useLocalSearchParams } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
 import React, { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import { useSQLiteContext } from "expo-sqlite";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 
 import BackIcon from "@/assets/icons/back.svg";
-import CheckIcon from "@/assets/icons/check.svg";
-import CameraIcon from "@/assets/icons/camera.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+import CameraIcon from "@/assets/icons/camera.svg";
+import CheckIcon from "@/assets/icons/check.svg";
 
 import { useBooksRepository } from "@/src/features/books/books.repository";
 import { CoverStorage } from "@/src/features/books/cover.storage";
-import {GestureHandlerRootView} from "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";

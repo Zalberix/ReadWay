@@ -1,20 +1,17 @@
 // app/(tabs)/books.tsx
-import React, {useCallback, useEffect, useMemo, useState} from "react";
-import {Image, Pressable, ScrollView, View} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { Image, Pressable, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 
 import BackIcon from "@/assets/icons/back.svg";
-import PlusIcon from "@/assets/icons/plus.svg";
 import PlaceholderIcon from "@/assets/icons/book-placeholder.svg";
+import PlusIcon from "@/assets/icons/plus.svg";
 
-import {BooksWithCurrentPage, useBooksRepository} from "@/src/features/books/books.repository";
-import {Sheet, SheetContent} from "@/components/ui/sheet";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
+import { BooksWithCurrentPage, useBooksRepository } from "@/src/features/books/books.repository";
 
 const BG = "#F4F0FF";
 const PURPLE = "#7C5CFF";
@@ -61,19 +58,6 @@ function BookThumb({
     );
   }
 
-  // Заглушка: иконка + первая буква названия
-  const letter = (title?.trim()?.[0] ?? "К").toUpperCase();
-
-  return (
-    <View
-      className="items-center justify-center rounded-xl"
-      style={{ width: s, height: s, backgroundColor: THUMB_BG }}
-    >
-      <Text className="mt-1 text-xs font-semibold" style={{ color: THUMB_ICON }}>
-        {letter}
-      </Text>
-    </View>
-  );
 }
 
 function ProgressLine({

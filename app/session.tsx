@@ -70,7 +70,9 @@ export default function SessionPage() {
   const onFinish = useCallback(() => {
     const data = session.finish();
     const maxPages = book?.page_count ?? 0;
-    router.push({ pathname: "/session-create", params: { id_book: String(data.bookId ?? ""), page: String(data.page ?? 0), max: String(maxPages), durationSec: String(data.duration), sessionDateISO: data.startDateISO } });
+    // replace current route so the session page is removed from history;
+    // then `session-create` will navigate to the book page on save.
+    router.replace({ pathname: "/session-create", params: { id_book: String(data.bookId ?? ""), page: String(data.page ?? 0), max: String(maxPages), durationSec: String(data.duration), sessionDateISO: data.startDateISO } });
   }, [session, book]);
 
   return (

@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import '../global.css';
@@ -9,8 +9,9 @@ import { SessionProvider } from "@/src/contexts/session";
 import { runMigrationsIfNeed } from "@/src/db/migrations";
 import { PortalHost } from "@rn-primitives/portal";
 import { SQLiteProvider } from "expo-sqlite";
+import { View } from 'react-native';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -18,6 +19,10 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+  const showTopSpacer = pathname !== "/"; // don't duplicate on index
+
+  const BG = '#F4F0FF';
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -25,7 +30,12 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <SessionProvider>
-            <Stack>
+              {showTopSpacer ? (
+                <SafeAreaView edges={["top"]} style={{ backgroundColor: BG }}>
+                  <View style={{ backgroundColor: BG }} className="px-4 py-4" />
+                </SafeAreaView>
+              ) : null}
+              <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="(modal)/book-create"

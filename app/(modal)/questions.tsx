@@ -147,7 +147,7 @@ export default function QuestionsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "top"]}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -157,7 +157,7 @@ export default function QuestionsScreen() {
 
   if (loadError) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "top"]}>
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-lg font-semibold">Ошибка</Text>
           <Text className="mt-2 text-center text-sm" style={{ color: '#6B7280' }}>{loadError}</Text>

@@ -1,20 +1,20 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
+import React, { useCallback, useMemo, useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import { Button } from "@/components/ui/button";
 
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 import BackIcon from "@/assets/icons/back.svg";
-import PlusIcon from "@/assets/icons/plus.svg";
 import PencilIcon from "@/assets/icons/pencil.svg";
+import PlusIcon from "@/assets/icons/plus.svg";
 import TrashIcon from "@/assets/icons/trash.svg";
 
 import { useSessionsRepository, type SessionRow } from "@/src/features/sessions/sessions.repository";
